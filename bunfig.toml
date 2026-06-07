@@ -1,0 +1,4 @@
+[test]
+# Exclude fixture projects — they are intentionally broken and are run only
+# inside the sandboxed harness, not as part of the repo's own test suite.
+pathIgnorePatterns = ["fixtures/**"]

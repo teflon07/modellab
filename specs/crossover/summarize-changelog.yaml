@@ -1,0 +1,12 @@
+id: summarize-changelog
+track: crossover
+mode: single_shot
+prompt_file: ../../prompts/summarize-changelog.md
+models: ["anthropic/claude-opus-4-8", "ollama/llama3.1"]   # fill with both a frontier and a local model
+reps: 3
+timeout_s: 180
+scoring:
+  kind: judge
+  judge_model: anthropic/claude-opus-4-8
+  rubric_file: rubrics/summarize-changelog.md
+tags: [summarization]
