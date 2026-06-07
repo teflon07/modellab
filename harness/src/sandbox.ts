@@ -24,10 +24,12 @@ export async function provisionSandbox(opts: ProvisionOpts): Promise<Sandbox> {
 
   for (const cmd of opts.fixture.setup) {
     const proc = Bun.spawn(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" });
-    const code = await proc.exited;
+    const [code, errText] = await Promise.all([
+      proc.exited,
+      new Response(proc.stderr).text(),
+    ]);
     if (code !== 0) {
-      const err = await new Response(proc.stderr).text();
-      throw new Error(`sandbox setup failed (${cmd}): exit ${code}\n${err}`);
+      throw new Error(`sandbox setup failed (${cmd}): exit ${code}\n${errText}`);
     }
   }
   return { cwd };
