@@ -27,6 +27,7 @@ export function collectByTag(dbPath: string, tag: string): CollectedMetrics | nu
       FROM events WHERE session_id = $sid
     `).get({ $sid: session.session_id }) as Record<string, number>;
 
+    // peakContext = max per-turn context (input + cache_read + cache_write); excludes output by design, so it won't reconcile with total_tokens.
     const peak = db.query(`
       SELECT COALESCE(MAX(
         COALESCE(json_extract(payload_json,'$.usage.input'),0)
@@ -51,7 +52,9 @@ export function collectByTag(dbPath: string, tag: string): CollectedMetrics | nu
         AND json_extract(payload_json,'$.output_tps') IS NOT NULL
     `).get({ $sid: session.session_id }) as { tps: number | null };
 
-    const wallClockMs = new Date(session.last_ts).getTime() - new Date(session.first_ts).getTime();
+    const startMs = new Date(session.first_ts).getTime();
+    const endMs = new Date(session.last_ts).getTime();
+    const wallClockMs = Number.isNaN(startMs) || Number.isNaN(endMs) ? 0 : Math.max(0, endMs - startMs);
 
     return {
       sessionId: session.session_id,
