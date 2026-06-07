@@ -47,6 +47,8 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
       ttftMs: distribution(num((r) => r.ttftMs ?? 0)),
       outputTps: distribution(num((r) => r.outputTps ?? 0)),
       peakContext: distribution(num((r) => r.peakContext)),
+      // Amortized cost/tokens to obtain ONE success: total spend over ALL runs
+      // (failed + passed) divided by the number of passing runs. null if none passed.
       costPerSuccess: passes.length === 0 ? null : sumCost / passes.length,
       tokensPerSuccess: passes.length === 0 ? null : sumTok / passes.length,
     });
