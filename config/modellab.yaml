@@ -3,6 +3,7 @@ obs:
   server_url: http://127.0.0.1:43190
   token: devtoken
   pool: benchmark
+  extension_path: ~/.pi/observability/extension/pi-observability.ts
 pi_version: "0.78.1"
 prices:
   # Fill from each provider's pricing page; used to normalize cross-provider cost.

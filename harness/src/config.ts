@@ -12,6 +12,7 @@ export interface Config {
     server_url: string;
     token: string;
     pool: string;
+    extension_path?: string;
   };
   pi_version: string;
   prices: Record<string, PriceEntry>;
@@ -31,6 +32,7 @@ export function parseConfig(text: string): Config {
       server_url: String(raw.obs.server_url ?? "http://127.0.0.1:43190"),
       token: String(raw.obs.token ?? "devtoken"),
       pool: String(raw.obs.pool ?? "benchmark"),
+      extension_path: raw.obs.extension_path ? String(raw.obs.extension_path) : undefined,
     },
     pi_version: String(raw.pi_version ?? "unknown"),
     prices,
