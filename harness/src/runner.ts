@@ -6,11 +6,16 @@ export interface BuildArgsOpts {
   tag: string;
   pool: string;
   promptText: string;
+  obsExtensionPath?: string;
 }
 
 export function buildPiArgs(opts: BuildArgsOpts): string[] {
-  const { spec, model, tag, pool, promptText } = opts;
-  const args = [
+  const { spec, model, tag, pool, promptText, obsExtensionPath } = opts;
+  const args: string[] = [];
+  if (obsExtensionPath) {
+    args.push("-e", obsExtensionPath);
+  }
+  args.push(
     "-p",
     "--mode", "json",
     "--no-context-files",
@@ -19,7 +24,7 @@ export function buildPiArgs(opts: BuildArgsOpts): string[] {
     "--o-tag", tag,
     "--o-name", `${spec.id}/${model}`,
     "--model", model,
-  ];
+  );
   if (spec.mode === "single_shot") {
     args.push("--no-tools", "--no-session");
   }
@@ -31,6 +36,7 @@ export interface RunOneOpts extends BuildArgsOpts {
   cwd: string;
   timeoutMs: number;
   env: Record<string, string>;
+  obsExtensionPath?: string;
 }
 
 export interface RunOneResult {

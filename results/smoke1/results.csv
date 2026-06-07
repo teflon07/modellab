@@ -1,0 +1,3 @@
+track,spec,model,n,pass_rate,tokens_med,tokens_min,tokens_max,cost_med,cost_per_success,tokens_per_success,cache_hit_med,turns_med,tool_calls_med,wall_ms_med,ttft_ms_med,tps_med,peak_ctx_med
+local,extract-json,anthropic/claude-haiku-4-5,2,1.0000,635,635,635,0.001099,0.001099,635,0.0000,1,0,1476.5,669.5,145,519
+local,extract-json,anthropic/claude-haiku-4-5-20251001,2,1.0000,623.5,622,625,0.001041,0.001041,623.5,0.0000,1,0,1526.5,959,187.5,519

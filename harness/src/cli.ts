@@ -84,6 +84,7 @@ async function main(): Promise<void> {
       const run = await runOne({
         spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
         promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
+        obsExtensionPath: cfg.obs.extension_path,
       });
 
       // Give the obs server a moment to ingest the session_shutdown event.
@@ -103,6 +104,7 @@ async function main(): Promise<void> {
               spec: { ...p.spec, mode: "single_shot" }, model,
               tag: `${tag}:judge`, pool: cfg.obs.pool, promptText: prompt,
               cwd: root, timeoutMs: 120_000, env,
+              obsExtensionPath: cfg.obs.extension_path,
             });
             return j.stdout;
           },
