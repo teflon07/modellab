@@ -1,0 +1,13 @@
+{
+  "name": "modellab",
+  "version": "0.1.0",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "bin": { "modellab": "harness/src/cli.ts" },
+  "scripts": {
+    "test": "bun test",
+    "bench": "bun harness/src/cli.ts bench"
+  },
+  "dependencies": { "yaml": "^2.5.0" }
+}
