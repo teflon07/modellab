@@ -1,6 +1,12 @@
 import { Database } from "bun:sqlite";
 import type { CollectedMetrics } from "./types";
 
+interface AggRow {
+  totalTokens: number; inputTokens: number; outputTokens: number;
+  cacheRead: number; cacheWrite: number; costTotal: number;
+  turns: number; toolCalls: number; compactions: number; errorCount: number;
+}
+
 export function collectByTag(dbPath: string, tag: string): CollectedMetrics | null {
   const db = new Database(dbPath, { readonly: true });
   try {
@@ -25,7 +31,7 @@ export function collectByTag(dbPath: string, tag: string): CollectedMetrics | nu
         COALESCE(SUM(CASE WHEN type='compaction' THEN 1 END),0) AS compactions,
         COALESCE(SUM(CASE WHEN type='error' THEN 1 END),0) AS errorCount
       FROM events WHERE session_id = $sid
-    `).get({ $sid: session.session_id }) as Record<string, number>;
+    `).get({ $sid: session.session_id }) as AggRow;
 
     // peakContext = max per-turn context (input + cache_read + cache_write); excludes output by design, so it won't reconcile with total_tokens.
     const peak = db.query(`
