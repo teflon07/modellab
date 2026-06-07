@@ -62,6 +62,16 @@ OBS_AUTH_TOKEN=devtoken OBS_HOST=127.0.0.1 OBS_PORT=43190 OBS_DB_PATH=../../db/o
 
 Edit `config/modellab.yaml` to confirm `db_path`, `server_url`, `token`, and `prices`.
 
+You MUST also set `obs.extension_path` to the absolute path of the pi-observability
+extension, for example:
+
+```yaml
+obs:
+  extension_path: ~/.pi/observability/extension/pi-observability.ts
+```
+
+Without this, `pi` runs produce NO telemetry and the report will be empty.
+
 For each spec you want to run, fill in the `models:` list. Run `pi --list-models`
 to see what is available on your system, or consult `config/available-models.txt`
 for the full catalog.
