@@ -67,54 +67,58 @@ async function main(): Promise<void> {
 
   const results: RunResult[] = [];
   for (const p of plan) {
-    const promptText = resolvePrompt(p.spec, p.path);
     const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
-    let sandboxCwd = root;
     let sandbox: Awaited<ReturnType<typeof provisionSandbox>> | null = null;
+    try {
+      const promptText = resolvePrompt(p.spec, p.path);
+      let sandboxCwd = root;
+      if (p.spec.mode === "agentic" && p.spec.fixture) {
+        sandbox = await provisionSandbox({
+          repoRoot: root, fixture: p.spec.fixture,
+          runId, specId: p.spec.id, model: p.model, rep: p.rep,
+        });
+        sandboxCwd = sandbox.cwd;
+      }
 
-    if (p.spec.mode === "agentic" && p.spec.fixture) {
-      sandbox = await provisionSandbox({
-        repoRoot: root, fixture: p.spec.fixture,
-        runId, specId: p.spec.id, model: p.model, rep: p.rep,
+      console.error(`[run] ${tag}`);
+      const run = await runOne({
+        spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
+        promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
       });
-      sandboxCwd = sandbox.cwd;
+
+      // Give the obs server a moment to ingest the session_shutdown event.
+      await Bun.sleep(1500);
+      const metrics = collectByTag(cfg.obs.db_path, tag);
+
+      let score = { pass: false, score: null as number | null };
+      if (p.spec.scoring.kind === "programmatic" && p.spec.fixture) {
+        score = await scoreProgrammatic(p.spec.fixture.verify, sandboxCwd);
+      } else if (p.spec.scoring.kind === "judge") {
+        const rubric = readFileSync(resolve(root, p.spec.scoring.rubric_file), "utf8");
+        const judgeModel = p.spec.scoring.judge_model;
+        score = await scoreJudge({
+          judgeModel, rubric, output: run.stdout,
+          runJudge: async (prompt, model) => {
+            const j = await runOne({
+              spec: { ...p.spec, mode: "single_shot" }, model,
+              tag: `${tag}:judge`, pool: cfg.obs.pool, promptText: prompt,
+              cwd: root, timeoutMs: 120_000, env,
+            });
+            return j.stdout;
+          },
+        });
+      }
+
+      if (metrics) {
+        results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score });
+      } else {
+        console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
+      }
+    } catch (err) {
+      console.error(`[error] ${tag}: ${err}`);
+    } finally {
+      if (sandbox) await teardownSandbox(sandbox);
     }
-
-    console.error(`[run] ${tag}`);
-    const run = await runOne({
-      spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
-      promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
-    });
-
-    // Give the obs server a moment to ingest the session_shutdown event.
-    await Bun.sleep(1500);
-    const metrics = collectByTag(cfg.obs.db_path, tag);
-
-    let score = { pass: false, score: null as number | null };
-    if (p.spec.scoring.kind === "programmatic" && p.spec.fixture) {
-      score = await scoreProgrammatic(p.spec.fixture.verify, sandboxCwd);
-    } else if (p.spec.scoring.kind === "judge") {
-      const rubric = readFileSync(resolve(root, p.spec.scoring.rubric_file), "utf8");
-      const judgeModel = p.spec.scoring.judge_model;
-      score = await scoreJudge({
-        judgeModel, rubric, output: run.stdout,
-        runJudge: async (prompt, model) => {
-          const j = await runOne({
-            spec: { ...p.spec, mode: "single_shot" }, model,
-            tag: `${tag}:judge`, pool: cfg.obs.pool, promptText: prompt,
-            cwd: root, timeoutMs: 120_000, env,
-          });
-          return j.stdout;
-        },
-      });
-    }
-
-    if (metrics) {
-      results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score });
-    } else {
-      console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
-    }
-    if (sandbox) await teardownSandbox(sandbox);
   }
 
   const summaries = summarize(results, specs.map((s) => s.spec));
