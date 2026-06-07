@@ -1,0 +1,15 @@
+id: fix-failing-test
+track: frontier
+mode: agentic
+prompt: |
+  A unit test is failing in this project. Find the bug in the source and fix it
+  so that `bun test` passes. Do not edit the test file.
+models: ["anthropic/claude-opus-4-8", "openai/gpt-4o"]   # fill with frontier models
+reps: 5
+timeout_s: 600
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/fix-failing-test
+  setup: []
+  verify: ["bun test"]
+tags: [debugging, agentic]

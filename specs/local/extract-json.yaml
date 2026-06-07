@@ -1,0 +1,16 @@
+# NOTE: single-shot programmatic scoring has no verify to run, so this spec is a smoke placeholder. For real single-shot grading use scoring.kind: judge (see crossover spec).
+id: extract-json
+track: local
+mode: single_shot
+prompt: |
+  Extract the person's name and city from this text and reply with ONLY JSON
+  {"name": ..., "city": ...}: "Maria Lopez lives in Tampa and loves sailing."
+models: ["ollama/llama3.1"]   # fill with local models from config/available-models.txt
+reps: 3
+timeout_s: 120
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/noop
+  setup: []
+  verify: []   # single-shot programmatic: verify empty; treated as informational
+tags: [extraction, json]
