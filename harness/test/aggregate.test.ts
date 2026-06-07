@@ -27,7 +27,8 @@ test("summarize groups by (track, spec, model) with derived metrics", () => {
     mkResult({ rep: 1, totalTokens: 100, costTotal: 0.02, pass: true }),
     mkResult({ rep: 2, totalTokens: 200, costTotal: 0.04, pass: false }),
   ];
-  const [cell] = summarize(results, specs);
+  const cells = summarize(results, specs);
+  const cell = cells[0]!;
   expect(cell.track).toBe("frontier");
   expect(cell.n).toBe(2);
   expect(cell.passRate).toBe(0.5);
@@ -41,7 +42,8 @@ test("costPerSuccess is null when nothing passed", () => {
     id: "s1", track: "local", mode: "single_shot", prompt: "x",
     models: ["m1"], reps: 1, timeout_s: 60, scoring: { kind: "programmatic" }, tags: [],
   }];
-  const [cell] = summarize([mkResult({ pass: false })], specs);
+  const cells = summarize([mkResult({ pass: false })], specs);
+  const cell = cells[0]!;
   expect(cell.costPerSuccess).toBeNull();
   expect(cell.tokensPerSuccess).toBeNull();
 });
