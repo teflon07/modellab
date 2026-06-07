@@ -33,3 +33,23 @@ test("agentic args keep tools enabled", () => {
   expect(args).not.toContain("--no-tools");
   expect(args).toContain("--no-context-files");
 });
+
+test("obsExtensionPath emits -e immediately before path", () => {
+  const extPath = "~/.pi/observability/extension/pi-observability.ts";
+  const args = buildPiArgs({
+    spec: base, model: "anthropic/claude-opus-4-8", tag: "bench:r:s1:m:1",
+    pool: "benchmark", promptText: "hello world",
+    obsExtensionPath: extPath,
+  });
+  const idx = args.indexOf("-e");
+  expect(idx).toBeGreaterThanOrEqual(0);
+  expect(args[idx + 1]).toBe(extPath);
+});
+
+test("omitting obsExtensionPath emits no -e flag", () => {
+  const args = buildPiArgs({
+    spec: base, model: "anthropic/claude-opus-4-8", tag: "bench:r:s1:m:1",
+    pool: "benchmark", promptText: "hello world",
+  });
+  expect(args).not.toContain("-e");
+});

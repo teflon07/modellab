@@ -36,7 +36,6 @@ export interface RunOneOpts extends BuildArgsOpts {
   cwd: string;
   timeoutMs: number;
   env: Record<string, string>;
-  obsExtensionPath?: string;
 }
 
 export interface RunOneResult {
