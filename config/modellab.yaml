@@ -1,0 +1,10 @@
+obs:
+  db_path: ~/.pi/observability/db/obs.db
+  server_url: http://127.0.0.1:43190
+  token: devtoken
+  pool: benchmark
+pi_version: "0.78.1"
+prices:
+  # Fill from each provider's pricing page; used to normalize cross-provider cost.
+  # Local models cost 0.
+  "anthropic/claude-opus-4-8": { input_per_mtok: 0, output_per_mtok: 0 }
