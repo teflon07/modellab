@@ -5,7 +5,7 @@ mode: single_shot
 prompt: |
   Extract the person's name and city from this text and reply with ONLY JSON
   {"name": ..., "city": ...}: "Maria Lopez lives in Tampa and loves sailing."
-models: ["ollama/llama3.1"]   # fill with local models from config/available-models.txt
+models: ["anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5", "anthropic/claude-haiku-4-5-20251001"]
 reps: 3
 timeout_s: 120
 scoring: { kind: programmatic }
