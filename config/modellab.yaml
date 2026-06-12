@@ -6,6 +6,7 @@ obs:
   extension_path: ~/.pi/observability/extension/pi-observability.ts
 pi_version: "0.78.1"
 prices:
-  # Fill from each provider's pricing page; used to normalize cross-provider cost.
-  # Local models cost 0.
-  "anthropic/claude-opus-4-8": { input_per_mtok: 0, output_per_mtok: 0 }
+  # An entry here OVERRIDES the provider-reported cost for that model (see
+  # priceOverride in harness/src/config.ts). Only list models pi prices wrong
+  # or not at all; omit models whose telemetry cost is already correct.
+  "anthropic/claude-fable-5": { input_per_mtok: 10, output_per_mtok: 50 }

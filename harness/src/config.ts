@@ -42,3 +42,25 @@ export function parseConfig(text: string): Config {
 export function loadConfig(path: string): Config {
   return parseConfig(readFileSync(path, "utf8"));
 }
+
+/**
+ * Recompute a run's cost from the config price table, overriding the
+ * provider-reported cost when an entry exists for the model. Cache reads are
+ * billed at 10% of the input rate and cache writes at 125% (Anthropic-style
+ * 5-minute cache). Returns null when the model has no price entry.
+ */
+export function priceOverride(
+  prices: Record<string, PriceEntry>,
+  model: string,
+  m: { inputTokens: number; outputTokens: number; cacheRead: number; cacheWrite: number },
+): number | null {
+  const p = prices[model];
+  if (!p) return null;
+  const inputCost =
+    (m.inputTokens * p.input_per_mtok +
+      m.cacheRead * p.input_per_mtok * 0.1 +
+      m.cacheWrite * p.input_per_mtok * 1.25) /
+    1_000_000;
+  const outputCost = (m.outputTokens * p.output_per_mtok) / 1_000_000;
+  return inputCost + outputCost;
+}

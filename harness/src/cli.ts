@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadConfig } from "./config";
+import { loadConfig, priceOverride } from "./config";
 import { loadSpecs, resolvePrompt } from "./spec";
 import { buildRunTag } from "./tag";
 import { runOne } from "./runner";
@@ -112,6 +112,8 @@ async function main(): Promise<void> {
       }
 
       if (metrics) {
+        const priced = priceOverride(cfg.prices, p.model, metrics);
+        if (priced != null) metrics.costTotal = priced;
         results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score });
       } else {
         console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
