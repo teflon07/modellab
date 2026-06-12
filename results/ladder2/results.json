@@ -1,0 +1,626 @@
+{
+  "meta": {
+    "runId": "ladder2",
+    "generatedAt": "2026-06-12T17:50:11.273Z",
+    "piVersion": "0.78.1"
+  },
+  "summaries": [
+    {
+      "track": "local",
+      "specId": "extract-json",
+      "model": "anthropic/claude-fable-5",
+      "n": 3,
+      "passRate": 1,
+      "tokens": {
+        "median": 721,
+        "min": 721,
+        "max": 722
+      },
+      "cost": {
+        "median": 0.002495,
+        "min": 0.002445,
+        "max": 0.0103225
+      },
+      "cacheHitRatio": {
+        "median": 0.9985422740524781,
+        "min": 0,
+        "max": 0.9985422740524781
+      },
+      "turns": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "toolCalls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "wallClockMs": {
+        "median": 5267,
+        "min": 4436,
+        "max": 6541
+      },
+      "ttftMs": {
+        "median": 4613,
+        "min": 4246,
+        "max": 5051
+      },
+      "outputTps": {
+        "median": 169,
+        "min": 18,
+        "max": 188
+      },
+      "peakContext": {
+        "median": 686,
+        "min": 686,
+        "max": 686
+      },
+      "costPerSuccess": 0.005087499999999999,
+      "tokensPerSuccess": 721.3333333333334
+    },
+    {
+      "track": "local",
+      "specId": "extract-json",
+      "model": "anthropic/claude-opus-4-8",
+      "n": 3,
+      "passRate": 1,
+      "tokens": {
+        "median": 711,
+        "min": 711,
+        "max": 711
+      },
+      "cost": {
+        "median": 0.0040550000000000004,
+        "min": 0.0040550000000000004,
+        "max": 0.0040550000000000004
+      },
+      "cacheHitRatio": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "turns": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "toolCalls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "wallClockMs": {
+        "median": 1649,
+        "min": 1271,
+        "max": 1695
+      },
+      "ttftMs": {
+        "median": 1367,
+        "min": 941,
+        "max": 1409
+      },
+      "outputTps": {
+        "median": 88,
+        "min": 76,
+        "max": 90
+      },
+      "peakContext": {
+        "median": 686,
+        "min": 686,
+        "max": 686
+      },
+      "costPerSuccess": 0.0040550000000000004,
+      "tokensPerSuccess": 711
+    },
+    {
+      "track": "local",
+      "specId": "extract-json",
+      "model": "anthropic/claude-sonnet-4-6",
+      "n": 3,
+      "passRate": 1,
+      "tokens": {
+        "median": 511,
+        "min": 511,
+        "max": 511
+      },
+      "cost": {
+        "median": 0.001785,
+        "min": 0.001785,
+        "max": 0.001785
+      },
+      "cacheHitRatio": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "turns": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "toolCalls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "wallClockMs": {
+        "median": 1420,
+        "min": 1386,
+        "max": 1446
+      },
+      "ttftMs": {
+        "median": 1072,
+        "min": 1068,
+        "max": 1139
+      },
+      "outputTps": {
+        "median": 67,
+        "min": 61,
+        "max": 69
+      },
+      "peakContext": {
+        "median": 490,
+        "min": 490,
+        "max": 490
+      },
+      "costPerSuccess": 0.001785,
+      "tokensPerSuccess": 511
+    },
+    {
+      "track": "local",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5",
+      "n": 3,
+      "passRate": 1,
+      "tokens": {
+        "median": 625,
+        "min": 619,
+        "max": 663
+      },
+      "cost": {
+        "median": 0.001049,
+        "min": 0.001019,
+        "max": 0.001239
+      },
+      "cacheHitRatio": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "turns": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "toolCalls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "wallClockMs": {
+        "median": 1376,
+        "min": 1294,
+        "max": 1660
+      },
+      "ttftMs": {
+        "median": 718,
+        "min": 700,
+        "max": 887
+      },
+      "outputTps": {
+        "median": 185,
+        "min": 149,
+        "max": 187
+      },
+      "peakContext": {
+        "median": 519,
+        "min": 519,
+        "max": 519
+      },
+      "costPerSuccess": 0.0011023333333333334,
+      "tokensPerSuccess": 635.6666666666666
+    },
+    {
+      "track": "local",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "n": 3,
+      "passRate": 1,
+      "tokens": {
+        "median": 648,
+        "min": 624,
+        "max": 653
+      },
+      "cost": {
+        "median": 0.001164,
+        "min": 0.001044,
+        "max": 0.001189
+      },
+      "cacheHitRatio": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "turns": {
+        "median": 1,
+        "min": 1,
+        "max": 1
+      },
+      "toolCalls": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "wallClockMs": {
+        "median": 1704,
+        "min": 1488,
+        "max": 1779
+      },
+      "ttftMs": {
+        "median": 982,
+        "min": 666,
+        "max": 1099
+      },
+      "outputTps": {
+        "median": 157,
+        "min": 155,
+        "max": 186
+      },
+      "peakContext": {
+        "median": 519,
+        "min": 519,
+        "max": 519
+      },
+      "costPerSuccess": 0.0011323333333333333,
+      "tokensPerSuccess": 641.6666666666666
+    }
+  ],
+  "runs": [
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-fable-5",
+      "rep": 1,
+      "sessionId": "019ebcf3-8667-794e-9519-496384347d89",
+      "totalTokens": 721,
+      "inputTokens": 1,
+      "outputTokens": 35,
+      "cacheRead": 0,
+      "cacheWrite": 685,
+      "costTotal": 0.0103225,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 4436,
+      "ttftMs": 4246,
+      "outputTps": 188,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-fable-5",
+      "rep": 2,
+      "sessionId": "019ebcf3-a34a-7366-bb93-0bdc436b346b",
+      "totalTokens": 722,
+      "inputTokens": 1,
+      "outputTokens": 36,
+      "cacheRead": 685,
+      "cacheWrite": 0,
+      "costTotal": 0.002495,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 5267,
+      "ttftMs": 5051,
+      "outputTps": 169,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-fable-5",
+      "rep": 3,
+      "sessionId": "019ebcf3-c3eb-7f28-a814-22406545ed3c",
+      "totalTokens": 721,
+      "inputTokens": 1,
+      "outputTokens": 35,
+      "cacheRead": 685,
+      "cacheWrite": 0,
+      "costTotal": 0.002445,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 6541,
+      "ttftMs": 4613,
+      "outputTps": 18,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-opus-4-8",
+      "rep": 1,
+      "sessionId": "019ebcf3-e8ac-76dd-b1b1-d96b24dfea86",
+      "totalTokens": 711,
+      "inputTokens": 686,
+      "outputTokens": 25,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.0040550000000000004,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 1649,
+      "ttftMs": 1367,
+      "outputTps": 90,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-opus-4-8",
+      "rep": 2,
+      "sessionId": "019ebcf3-fa2c-7a5a-8ae3-6c3ab758673e",
+      "totalTokens": 711,
+      "inputTokens": 686,
+      "outputTokens": 25,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.0040550000000000004,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 1271,
+      "ttftMs": 941,
+      "outputTps": 76,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-opus-4-8",
+      "rep": 3,
+      "sessionId": "019ebcf4-08d3-7f91-a5d2-5d4b07613845",
+      "totalTokens": 711,
+      "inputTokens": 686,
+      "outputTokens": 25,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.0040550000000000004,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 686,
+      "wallClockMs": 1695,
+      "ttftMs": 1409,
+      "outputTps": 88,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-sonnet-4-6",
+      "rep": 1,
+      "sessionId": "019ebcf4-1a19-7819-a637-60aa167a7625",
+      "totalTokens": 511,
+      "inputTokens": 490,
+      "outputTokens": 21,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001785,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 490,
+      "wallClockMs": 1420,
+      "ttftMs": 1072,
+      "outputTps": 61,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-sonnet-4-6",
+      "rep": 2,
+      "sessionId": "019ebcf4-2956-705d-b607-e665fce37fe1",
+      "totalTokens": 511,
+      "inputTokens": 490,
+      "outputTokens": 21,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001785,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 490,
+      "wallClockMs": 1386,
+      "ttftMs": 1068,
+      "outputTps": 67,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-sonnet-4-6",
+      "rep": 3,
+      "sessionId": "019ebcf4-3983-7829-8387-9df0b52310e4",
+      "totalTokens": 511,
+      "inputTokens": 490,
+      "outputTokens": 21,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001785,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 490,
+      "wallClockMs": 1446,
+      "ttftMs": 1139,
+      "outputTps": 69,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5",
+      "rep": 1,
+      "sessionId": "019ebcf4-48eb-7213-b3bb-b052ed95c673",
+      "totalTokens": 625,
+      "inputTokens": 519,
+      "outputTokens": 106,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001049,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1294,
+      "ttftMs": 718,
+      "outputTps": 185,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5",
+      "rep": 2,
+      "sessionId": "019ebcf4-5924-7fa7-ae18-4180a8eac46d",
+      "totalTokens": 619,
+      "inputTokens": 519,
+      "outputTokens": 100,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001019,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1376,
+      "ttftMs": 700,
+      "outputTps": 149,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5",
+      "rep": 3,
+      "sessionId": "019ebcf4-6864-7a83-8f97-19ea0dd70569",
+      "totalTokens": 663,
+      "inputTokens": 519,
+      "outputTokens": 144,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001239,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1660,
+      "ttftMs": 887,
+      "outputTps": 187,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "rep": 1,
+      "sessionId": "019ebcf4-7887-730b-9be0-737d2a3596ab",
+      "totalTokens": 624,
+      "inputTokens": 519,
+      "outputTokens": 105,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001044,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1779,
+      "ttftMs": 1099,
+      "outputTps": 155,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "rep": 2,
+      "sessionId": "019ebcf4-8a1b-7b81-93b9-1f0293d40047",
+      "totalTokens": 653,
+      "inputTokens": 519,
+      "outputTokens": 134,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001189,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1704,
+      "ttftMs": 982,
+      "outputTps": 186,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    },
+    {
+      "runId": "ladder2",
+      "specId": "extract-json",
+      "model": "anthropic/claude-haiku-4-5-20251001",
+      "rep": 3,
+      "sessionId": "019ebcf4-9a77-7bd3-a31e-937f3067f9e4",
+      "totalTokens": 648,
+      "inputTokens": 519,
+      "outputTokens": 129,
+      "cacheRead": 0,
+      "cacheWrite": 0,
+      "costTotal": 0.001164,
+      "turns": 1,
+      "toolCalls": 0,
+      "compactions": 0,
+      "peakContext": 519,
+      "wallClockMs": 1488,
+      "ttftMs": 666,
+      "outputTps": 157,
+      "errorCount": 0,
+      "pass": true,
+      "score": 1
+    }
+  ]
+}
