@@ -446,3 +446,16 @@ test("maze-solve-15: rejects wall-hitting path, accepts the 72-move solution", (
     expect(verifyStatus(dir)).toBe(0);
   });
 });
+
+const MAZE21_PATH =
+  "RRDDLLDDDDRRDDDDDDRRDDRRRRUUUUUURRRRUULLLLLLUUUULLUURRRRRRDDRRDDRRUURRDDRRDDDDDDLLDDDDLLDDRRRRDD";
+
+test("maze-solve-21: rejects wall-hitting path, accepts the 96-move solution", () => {
+  withFixture("maze-solve-21", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // no response.txt
+    writeFileSync(join(dir, "response.txt"), "DDDD"); // (1,1)->down hits the wall at (2,1)
+    expect(verifyStatus(dir)).not.toBe(0);
+    writeFileSync(join(dir, "response.txt"), MAZE21_PATH + "\n");
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
