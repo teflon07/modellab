@@ -1,0 +1,16 @@
+id: logic-grid-hard
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5", "anthropic/claude-haiku-4-5", "anthropic/claude-fable-5", "openrouter/z-ai/glm-5.2"]
+reps: 10
+timeout_s: 500
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/logic-grid
+  # Hardest deduction tier: 5x5, relational-only clues (no position anchors),
+  # betweenness clues, abstract tokens (anti-memorization), and crucially only
+  # puzzles that pure constraint propagation CANNOT solve (require search).
+  generator: "LOGIC_N=5 LOGIC_K=5 LOGIC_HARD=1 LOGIC_ABSTRACT=1 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, deduction, generated, hard-ceiling]
