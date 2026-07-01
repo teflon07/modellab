@@ -139,13 +139,24 @@ the price spread the token counts hide (Fable is $10/$50 per Mtok; Haiku/GLM are
 an order of magnitude cheaper). GPT-5.5's figure is a floor — its reasoning
 tokens may not be fully counted.
 
-**Execution — maze-solve 21×21 (96-move), 10 reps**
+**Execution — maze-solve across sizes (10 reps each; pass% · est. $/success)**
 
-| Model | Pass | Tokens (med) | Est. $/success |
+Path length is the difficulty dial. Everyone clears the short maze; the frontier
+separates only as the path grows and per-step error compounds.
+
+| Model | 11×11 (44-move) | 15×15 (72-move) | 21×21 (96-move) |
 |---|---|---|---|
-| Fable 5 | 100% | 12.0K | $0.59 |
-| Opus 4.8 | 80% | 19.5K | $0.61 |
-| Sonnet 5 | 0% | 29.0K | — |
+| Fable 5 | 100% · $0.09 | 100% · $0.25 | **100% · $0.59** |
+| Opus 4.8 | 100% · $0.11 | 100% · $0.33 | **80% · $0.61** |
+| Sonnet 5 | 100% · $0.08 | 100% · $0.20 | **0% · —** |
+| GPT-5.5 | 100% · $0.04 | 80% · $0.12 | not run |
+| GLM 5.2 | 60% · $0.02 | not run | not run |
+| Haiku 4.5 | 10% · $0.35 | not run | not run |
+
+At 44 moves every frontier model is perfect (GLM/Haiku already trail); at 72 the
+first crack shows (GPT-5.5 → 80%); at 96 only Fable holds 100%, Opus drops to 80%,
+and Sonnet collapses to 0%. Gaps marked "not run" are open cells (GPT-5.5 at 96;
+GLM/Haiku beyond 44) — cheap to fill.
 
 **Deduction — logic-grid-hard (search-required 5×5), 10 reps**
 
