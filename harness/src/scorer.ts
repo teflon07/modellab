@@ -18,6 +18,10 @@ export type JudgeRunner = (prompt: string, model: string) => Promise<string>;
 export interface JudgeOpts {
   judgeModel: string;
   rubric: string;
+  /** The task/prompt the output was generated from. Rubrics that reference the
+   *  source (e.g. "covers the most significant change", "no fabricated items not
+   *  in the changelog") are unjudgeable without it. */
+  task: string;
   output: string;
   runJudge: JudgeRunner;
 }
@@ -29,6 +33,9 @@ export async function scoreJudge(opts: JudgeOpts): Promise<ScoreResult> {
     "",
     "RUBRIC:",
     opts.rubric,
+    "",
+    "TASK THE OUTPUT WAS GENERATED FROM (the source the rubric refers to):",
+    opts.task,
     "",
     "OUTPUT TO GRADE:",
     opts.output,
