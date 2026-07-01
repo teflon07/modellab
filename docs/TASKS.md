@@ -89,9 +89,14 @@ unsolvable with doors as walls, so keys genuinely force planning.
 solve* (they require search/backtracking) and uses relational-only clues +
 abstract tokens.
 
-**Finding:** essentially solved across the frontier. Even at 5×5 (full Zebra
-scale) Fable/Opus/Sonnet/GPT-5.5 are 100% and Haiku 90%. Deduction is **not**
-where these models differ — a sharp contrast with execution.
+**Finding:** deduction *looks* solved but isn't — the gap was hidden by easy
+puzzles. On propagation-solvable puzzles (N=4, and N=5/K=5) the whole frontier is
+~100% (Haiku 90%). But `logic-grid-hard`, which keeps only puzzles that **require
+search/backtracking**, separates them: **Fable 100%, Opus 100%, GPT-5.5 90%,
+Sonnet 80%** (GLM/Haiku pending). The difficulty lever that matters is *required
+inference depth*, not board size — the deduction analog of path length for the
+maze. And the ordering echoes execution: Sonnet is the weakest of the frontier
+once the task is pushed.
 
 ### Abstraction — infer the rule itself from examples, then apply it
 | Task | What it tests | Dials |
@@ -107,18 +112,22 @@ answer. `arc-lite-hard` composes two transforms (harder to induce).
 
 | Faculty | Does it separate the frontier? | Notes |
 |---|---|---|
-| Execution (long-horizon) | **Yes, at scale** | Fable ≈ Opus > Sonnet; Sonnet is a perfect deducer yet 0% at 96-move execution |
-| Deduction | No (saturated) | all frontier ~100% even at Zebra scale |
+| Execution (long-horizon) | **Yes, at scale** | 96-move maze: Fable 100 / Opus 80 / Sonnet 0 |
+| Deduction | **Only when search-required** | easy & Zebra-scale saturate (~100%); search-required tier: Fable/Opus 100 > GPT-5.5 90 > Sonnet 80 |
 | Abstraction | *pending run* | expected to separate most (frontier weakest here) |
 | Planning | *pending run* | |
 | 3D representation | *pending run* | |
 
 Two headline reads:
-- **Deduction is largely solved; long-horizon execution fidelity is the remaining
-  frontier** among these models.
-- **The profile, not a scalar, is the truth.** Sonnet 5 = top deducer + weakest
-  long-horizon executor; Haiku = decent deducer + can't sustain execution;
-  Fable/Opus = strong on both.
+- **Difficulty must be calibrated per faculty.** Every faculty saturates on easy
+  instances; the signal appears only when you push the *right* lever — path length
+  for execution, required search depth for deduction. Both then reveal the same
+  frontier ordering.
+- **The profile, not a scalar, is the truth**, and it's consistent across hard
+  axes: **Sonnet 5 is the weakest of the frontier when pushed** (0% at 96-move
+  execution, 80% on search-required deduction), while **Fable and Opus are the
+  robust pair** on both and GPT-5.5 sits between. Haiku trails on execution but is
+  a competent deducer.
 
 ---
 
