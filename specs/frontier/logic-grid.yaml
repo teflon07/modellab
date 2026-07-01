@@ -1,0 +1,15 @@
+id: logic-grid
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5", "anthropic/claude-haiku-4-5"]
+reps: 10
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/logic-grid
+  # Fresh uniquely-solvable puzzle per rep (seeded by rep): measures deductive
+  # reasoning AND generalizes across instances, not just consistency on one.
+  generator: "python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, deduction, generated, hard-ceiling]

@@ -13,6 +13,13 @@ export interface Fixture {
   setup: string[];
   /** shell commands; all must exit 0 for a programmatic pass */
   verify: string[];
+  /**
+   * Optional per-rep task generator: a shell command run in the sandbox with
+   * MODELLAB_SEED=<rep> before the model runs. It must write prompt.txt (the task
+   * prompt) plus any files verify needs (e.g. solution.json). Makes a task
+   * generate a fresh instance each rep, measuring generalization not consistency.
+   */
+  generator?: string;
 }
 
 export type Scoring =

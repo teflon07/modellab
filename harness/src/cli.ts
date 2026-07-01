@@ -99,7 +99,6 @@ async function main(): Promise<void> {
     const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
     let sandbox: Awaited<ReturnType<typeof provisionSandbox>> | null = null;
     try {
-      const promptText = resolvePrompt(p.spec, p.path);
       let sandboxCwd = root;
       // Provision the fixture sandbox for agentic runs (the agent edits files) and
       // for single-shot programmatic runs (verify needs the fixture files plus the
@@ -110,6 +109,23 @@ async function main(): Promise<void> {
           runId, specId: p.spec.id, model: p.model, rep: p.rep,
         });
         sandboxCwd = sandbox.cwd;
+      }
+      // A generator produces a fresh task instance per rep (writes prompt.txt plus
+      // whatever verify needs, e.g. solution.json), seeded by rep for
+      // reproducibility. This is what lets a task measure generalization across
+      // instances instead of consistency on one fixed instance.
+      let promptText: string;
+      if (p.spec.fixture?.generator) {
+        const gen = Bun.spawnSync(["sh", "-c", p.spec.fixture.generator], {
+          cwd: sandboxCwd,
+          env: { ...process.env, ...env, MODELLAB_SEED: String(p.rep) },
+        });
+        if (gen.exitCode !== 0) {
+          throw new Error(`generator failed (exit ${gen.exitCode}): ${gen.stderr?.toString() ?? ""}`);
+        }
+        promptText = readFileSync(resolve(sandboxCwd, "prompt.txt"), "utf8");
+      } else {
+        promptText = resolvePrompt(p.spec, p.path);
       }
 
       console.error(`[run] ${tag}`);
