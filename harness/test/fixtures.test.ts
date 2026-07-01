@@ -106,3 +106,109 @@ test("financial-metric verify rejects wrong numbers and accepts correct margins"
     expect(verifyStatus(dir)).toBe(0);
   });
 });
+
+// ---- Headroom tier: each proves the trap bites (the naive fix still fails) ----
+
+const STATUS_LOWERCASE_FIX =
+  "def summarize(results):\n" +
+  "    lines = [f'{name}: {detail}' for name, ok, detail in results]\n" +
+  "    report = '\\n'.join(lines)\n" +
+  "    if 'error' in report.lower():\n" +
+  "        return ('status: FAILED', 1)\n" +
+  "    return ('status: OK', 0)\n";
+
+const STATUS_OK_FLAG_FIX =
+  "def summarize(results):\n" +
+  "    failed = [name for name, ok, detail in results if not ok]\n" +
+  "    if failed:\n" +
+  "        return ('status: FAILED (' + ', '.join(failed) + ')', 1)\n" +
+  "    return ('status: OK', 0)\n";
+
+test("fix-status-detection: shipped and naive string-scan both fail; ok-flag fix passes", () => {
+  withFixture("fix-status-detection", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // shipped upper-case scan misses the failure
+    writeFileSync(join(dir, "runner.py"), STATUS_LOWERCASE_FIX);
+    expect(verifyStatus(dir)).not.toBe(0); // trap: false-flags the "0 errors" OK task
+    writeFileSync(join(dir, "runner.py"), STATUS_OK_FLAG_FIX);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+const BUDGET_ROUND_ONLY_FIX =
+  "def parse_amount(s):\n" +
+  "    s = s.strip()\n" +
+  "    neg = s.startswith('(') and s.endswith(')')\n" +
+  "    s = s.strip('()').replace('$', '').replace(',', '')\n" +
+  "    return float(s)\n" + // still ignores neg
+  "\n" +
+  "def net(entries):\n" +
+  "    return round(sum(parse_amount(e) for e in entries), 2)\n";
+
+const BUDGET_BOTH_FIX =
+  "def parse_amount(s):\n" +
+  "    s = s.strip()\n" +
+  "    neg = s.startswith('(') and s.endswith(')')\n" +
+  "    s = s.strip('()').replace('$', '').replace(',', '')\n" +
+  "    val = float(s)\n" +
+  "    return -val if neg else val\n" +
+  "\n" +
+  "def net(entries):\n" +
+  "    return round(sum(parse_amount(e) for e in entries), 2)\n";
+
+test("fix-multibug-py: shipped and one-bug fix both fail; fixing both passes", () => {
+  withFixture("fix-multibug-py", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // both bugs present
+    writeFileSync(join(dir, "budget.py"), BUDGET_ROUND_ONLY_FIX);
+    expect(verifyStatus(dir)).not.toBe(0); // rounding fixed but sign still wrong
+    writeFileSync(join(dir, "budget.py"), BUDGET_BOTH_FIX);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+test("extract-messy: rejects a raw (undeduped, unfiltered) extract; accepts the clean one", () => {
+  withFixture("extract-messy", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // result.json missing
+    // Naive: keeps the duplicate + malformed row, leaves state codes on cities.
+    writeFileSync(
+      join(dir, "result.json"),
+      JSON.stringify([
+        { name: "Maria Lopez", city: "Tampa FL 33601", email: "maria.lopez@example.com" },
+        { name: "James Chen", city: "Austin", email: "jchen@example.com" },
+        { name: "Priya Nair", city: "Miami", email: "priya@example.com" },
+        { name: "James Chen", city: "Austin", email: "jchen@example.com" },
+        { name: "Tomas Garcia", city: "", email: "tomas.garcia@example.com" },
+        { name: "Bad Row", city: "Denver", email: "not-an-email" },
+        { name: "Sam O'Neil", city: "Seattle WA", email: "sam.oneil@example.co.uk" },
+      ]),
+    );
+    expect(verifyStatus(dir)).not.toBe(0);
+    writeFileSync(
+      join(dir, "result.json"),
+      JSON.stringify([
+        { name: "James Chen", city: "Austin", email: "jchen@example.com" },
+        { name: "Maria Lopez", city: "Tampa", email: "maria.lopez@example.com" },
+        { name: "Priya Nair", city: "Miami", email: "priya@example.com" },
+        { name: "Sam O'Neil", city: "Seattle", email: "sam.oneil@example.co.uk" },
+        { name: "Tomas Garcia", city: null, email: "tomas.garcia@example.com" },
+      ]),
+    );
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+test("financial-trap: rejects the naive (include one-time gain) answer; accepts operating-basis", () => {
+  withFixture("financial-trap", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // answer.json missing
+    // Trap: ignored the note, used total_revenue = 1400.
+    writeFileSync(
+      join(dir, "answer.json"),
+      JSON.stringify({ gross_margin: 0.5714, operating_margin: 0.3571 }),
+    );
+    expect(verifyStatus(dir)).not.toBe(0);
+    writeFileSync(
+      join(dir, "answer.json"),
+      JSON.stringify({ gross_margin: 0.52, operating_margin: 0.28 }),
+    );
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});

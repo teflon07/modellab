@@ -1,0 +1,7 @@
+{
+  "total_revenue": 1400.0,
+  "one_time_gain": 150.0,
+  "cost_of_goods_sold": 600.0,
+  "operating_expenses": 300.0,
+  "note": "total_revenue includes a one-time asset-sale gain (one_time_gain). Operating metrics must exclude this non-operating item from both revenue and income."
+}

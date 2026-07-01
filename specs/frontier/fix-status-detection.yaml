@@ -1,0 +1,19 @@
+id: fix-status-detection
+track: frontier
+mode: agentic
+prompt: |
+  runner.py's summarize() decides whether a nightly maintenance run succeeded,
+  but it sometimes reports success when a task actually failed (and could report
+  failure when a task merely mentions errors in passing). Fix summarize() so the
+  overall status reflects the real per-task outcomes: return a "FAILED" status
+  line and a non-zero exit code if any task failed, and "OK" with exit code 0
+  otherwise. Do not edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/fix-status-detection
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [debugging, agentic, python, headroom, real-workflow]
