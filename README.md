@@ -138,6 +138,14 @@ tags: [my-tag]
 
 ## Current specs
 
+**See [`docs/TASKS.md`](docs/TASKS.md) for the full task catalog** — what each
+benchmark probes (by reasoning faculty), how it is scored, its difficulty dials,
+and findings so far. The tables below are a summary.
+
+There are two families: **cost/efficiency tasks** (realistic agentic work, listed
+here) and **capability probes** (abstract reasoning, single-shot/no-tools,
+generated fresh per rep — see the catalog).
+
 These map to representative daily work (coding/automation, extraction, writing to
 house style, financial reasoning), scored automatically. The deterministic checkers
 (`verify.py`) are rule-based or recompute the answer from inputs, so they cannot be
@@ -172,10 +180,29 @@ model is capable enough" need different calibration:
 | `financial-trap` | frontier | **headroom** | programmatic (recomputed) | exclude a one-time gain from operating margins |
 | `extract-messy` | crossover | **headroom** | programmatic (rule-based) | dedup, malformed-email drop, missing-city null, state stripping |
 
+### Capability probes (single-shot, generated per rep, faculty-mapped)
+
+Abstract reasoning tasks that isolate a specific faculty. Run with no tools (so
+the model reasons rather than writing a solver) and generated fresh each rep (so
+they measure generalization). Full detail in [`docs/TASKS.md`](docs/TASKS.md).
+
+| Task | Faculty | What it tests |
+|---|---|---|
+| `maze-solve` (11/15/21) | execution | track a path of up to ~96 dependent steps without drift |
+| `maze-3d` / `-hard` | execution + 3D | build a 3D model from stacked 2D layers |
+| `maze-keys` / `-hard` | planning | collect keys in order to open doors blocking the exit |
+| `logic-grid` / `-5` / `-hard` | deduction | Zebra-style constraint solving (hard tier requires search) |
+| `arc-lite` / `-hard` | abstraction | infer a hidden grid transform from examples, then apply it |
+
+Headline finding: long-horizon **execution** separates the frontier (Fable 100% /
+Opus 80% / Sonnet 0% at a 96-move maze), while **deduction** saturates (all ~100%
+even at Zebra scale). The suite exists to find *where* models differ, per faculty.
+
 To swap in your own real tasks, copy a fixture dir, write a `verify.py` that exits
 non-zero on any wrong output, add a matching self-test case to `fixtures.test.ts`,
 and drop a spec in `specs/<track>/`. For a headroom task, make sure the self-test
-includes a "naive fix still fails" case so the trap is proven to bite.
+includes a "naive fix still fails" case so the trap is proven to bite. For a
+generated probe, add a `fixture.generator` command (see `docs/TASKS.md`).
 
 ---
 
