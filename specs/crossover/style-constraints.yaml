@@ -1,0 +1,19 @@
+id: style-constraints
+track: crossover
+mode: agentic
+prompt: |
+  Rewrite the prose in draft.md into a new file out.md, following these house
+  style rules exactly:
+    - No em dashes. Rephrase with commas, periods, or restructured sentences.
+    - No period after an honorific: write "Dr Marsh", "Mr Tan" (not "Dr.", "Mr.").
+    - American spelling only (e.g. color, gray, organize, realize, center).
+  Preserve every person's name and the meaning of the passage. Write only out.md.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-haiku-4-5", "ollama/qwen3:1.7b"]
+reps: 3
+timeout_s: 180
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/style-constraints
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [writing, instruction-following, house-style]

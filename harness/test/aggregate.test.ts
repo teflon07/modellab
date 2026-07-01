@@ -1,11 +1,41 @@
 import { test, expect } from "bun:test";
-import { distribution, summarize } from "../src/aggregate";
+import { distribution, summarize, wilsonInterval } from "../src/aggregate";
 import type { RunResult, Spec } from "../src/types";
 
 test("distribution computes median/min/max", () => {
-  expect(distribution([3, 1, 2])).toEqual({ median: 2, min: 1, max: 3 });
-  expect(distribution([4, 1, 2, 3])).toEqual({ median: 2.5, min: 1, max: 4 });
-  expect(distribution([])).toEqual({ median: 0, min: 0, max: 0 });
+  expect(distribution([3, 1, 2])).toMatchObject({ median: 2, min: 1, max: 3 });
+  expect(distribution([4, 1, 2, 3])).toMatchObject({ median: 2.5, min: 1, max: 4 });
+  expect(distribution([])).toEqual({ median: 0, min: 0, max: 0, stdev: 0, cv: 0 });
+});
+
+test("distribution computes population stdev and cv", () => {
+  const d = distribution([2, 4, 6]); // mean 4, var (4+0+4)/3 = 2.6667
+  expect(d.stdev).toBeCloseTo(Math.sqrt(8 / 3), 6);
+  expect(d.cv).toBeCloseTo(Math.sqrt(8 / 3) / 4, 6);
+  // identical runs => no spread
+  expect(distribution([5, 5, 5])).toMatchObject({ stdev: 0, cv: 0 });
+  // single sample => stdev 0, not NaN
+  expect(distribution([7])).toMatchObject({ stdev: 0, cv: 0 });
+  // mean 0 => cv guarded to 0, not Infinity
+  expect(distribution([-1, 0, 1]).cv).toBe(0);
+});
+
+test("wilsonInterval is a sane 95% band that stays in [0,1]", () => {
+  // all pass at small n still admits real uncertainty (not 100%-100%)
+  const perfect = wilsonInterval(5, 5);
+  expect(perfect.high).toBe(1);
+  expect(perfect.low).toBeLessThan(1);
+  expect(perfect.low).toBeGreaterThan(0.5);
+  // 3/5 centers near 0.6 with a wide band, clamped in range
+  const flaky = wilsonInterval(3, 5);
+  expect(flaky.low).toBeGreaterThanOrEqual(0);
+  expect(flaky.high).toBeLessThanOrEqual(1);
+  expect(flaky.low).toBeLessThan(0.6);
+  expect(flaky.high).toBeGreaterThan(0.6);
+  // n=0 is defined, not NaN
+  expect(wilsonInterval(0, 0)).toEqual({ low: 0, high: 0 });
+  // more reps tighten the band
+  expect(wilsonInterval(20, 20).low).toBeGreaterThan(wilsonInterval(5, 5).low);
 });
 
 function mkResult(p: Partial<RunResult>): RunResult {
@@ -32,9 +62,14 @@ test("summarize groups by (track, spec, model) with derived metrics", () => {
   expect(cell.track).toBe("frontier");
   expect(cell.n).toBe(2);
   expect(cell.passRate).toBe(0.5);
-  expect(cell.tokens).toEqual({ median: 150, min: 100, max: 200 });
+  expect(cell.tokens).toMatchObject({ median: 150, min: 100, max: 200 });
   expect(cell.costPerSuccess).toBeCloseTo(0.06, 5);
   expect(cell.tokensPerSuccess).toBe(300);
+  // reliability band present and brackets the point estimate
+  expect(cell.passRateCI.low).toBeLessThan(0.5);
+  expect(cell.passRateCI.high).toBeGreaterThan(0.5);
+  // run-to-run cost spread surfaced
+  expect(cell.cost.cv).toBeGreaterThan(0);
 });
 
 test("costPerSuccess is null when nothing passed", () => {

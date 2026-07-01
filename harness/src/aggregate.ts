@@ -1,13 +1,32 @@
-import type { RunResult, Spec, Distribution, CellSummary, Track } from "./types";
+import type { RunResult, Spec, Distribution, Interval, CellSummary, Track } from "./types";
 
 export function distribution(xs: number[]): Distribution {
-  if (xs.length === 0) return { median: 0, min: 0, max: 0 };
+  if (xs.length === 0) return { median: 0, min: 0, max: 0, stdev: 0, cv: 0 };
   const sorted = [...xs].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   const median = sorted.length % 2 === 0
     ? (sorted[mid - 1]! + sorted[mid]!) / 2
     : sorted[mid]!;
-  return { median, min: sorted[0]!, max: sorted[sorted.length - 1]! };
+  const mean = xs.reduce((a, b) => a + b, 0) / xs.length;
+  const variance = xs.reduce((a, b) => a + (b - mean) ** 2, 0) / xs.length;
+  const stdev = Math.sqrt(variance);
+  const cv = mean === 0 ? 0 : stdev / Math.abs(mean);
+  return { median, min: sorted[0]!, max: sorted[sorted.length - 1]!, stdev, cv };
+}
+
+/**
+ * Wilson score interval for a binomial proportion — the honest reliability band
+ * for a pass rate measured over `n` reps. Behaves well at small n (unlike the
+ * normal approximation) and never escapes [0, 1]. Defaults to 95% (z = 1.96).
+ */
+export function wilsonInterval(passes: number, n: number, z = 1.96): Interval {
+  if (n === 0) return { low: 0, high: 0 };
+  const p = passes / n;
+  const z2 = z * z;
+  const denom = 1 + z2 / n;
+  const center = (p + z2 / (2 * n)) / denom;
+  const margin = (z / denom) * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n));
+  return { low: Math.max(0, center - margin), high: Math.min(1, center + margin) };
 }
 
 function cacheHitRatio(r: RunResult): number {
@@ -38,6 +57,7 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
       model,
       n: rs.length,
       passRate: rs.length === 0 ? 0 : passes.length / rs.length,
+      passRateCI: wilsonInterval(passes.length, rs.length),
       tokens: distribution(num((r) => r.totalTokens)),
       cost: distribution(num((r) => r.costTotal)),
       cacheHitRatio: distribution(num(cacheHitRatio)),

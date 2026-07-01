@@ -1,0 +1,15 @@
+id: fix-bug-py
+track: frontier
+mode: agentic
+prompt: |
+  A function in stats.py returns wrong results. Find and fix the bug in stats.py
+  so that `python3 verify.py` exits cleanly. Do not edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/fix-bug-py
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [debugging, agentic, python]
