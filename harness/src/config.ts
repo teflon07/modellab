@@ -21,6 +21,7 @@ export interface Config {
     approval: "never" | "on-request" | "untrusted";
     ephemeral: boolean;
     judge_model?: string;
+    effort?: string;
   };
   pi_version: string;
   prices: Record<string, PriceEntry>;
@@ -60,6 +61,7 @@ export function parseConfig(text: string): Config {
       approval,
       ephemeral: raw.codex?.ephemeral === undefined ? true : Boolean(raw.codex.ephemeral),
       judge_model: raw.codex?.judge_model ? String(raw.codex.judge_model) : undefined,
+      effort: raw.codex?.effort ? String(raw.codex.effort) : undefined,
     },
     pi_version: String(raw.pi_version ?? "unknown"),
     prices,

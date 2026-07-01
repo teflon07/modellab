@@ -76,6 +76,25 @@ test("codex args run exec JSONL through ChatGPT-authenticated CLI", () => {
   expect(args[args.length - 1]).toBe("hello world");
 });
 
+test("codex args carry reasoning effort as a -c override before exec", () => {
+  const args = buildCodexArgs({
+    spec: base, model: "gpt-5.5", promptText: "hi", cwd: "/tmp/lab",
+    sandbox: "read-only", approval: "never", ephemeral: true, effort: "high",
+  });
+  const ci = args.indexOf("-c");
+  expect(ci).toBeGreaterThanOrEqual(0);
+  expect(args[ci + 1]).toBe('model_reasoning_effort="high"');
+  expect(ci).toBeLessThan(args.indexOf("exec")); // override precedes the subcommand
+});
+
+test("codex args omit -c when no effort is set", () => {
+  const args = buildCodexArgs({
+    spec: base, model: "gpt-5.5", promptText: "hi", cwd: "/tmp/lab",
+    sandbox: "read-only", approval: "never", ephemeral: true,
+  });
+  expect(args).not.toContain("-c");
+});
+
 test("collectCodexMetrics parses final message and token usage", () => {
   const jsonl = [
     JSON.stringify({ type: "thread.started", thread_id: "thread-1" }),

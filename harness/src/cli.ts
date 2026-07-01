@@ -108,6 +108,7 @@ async function main(): Promise<void> {
           spec: p.spec, model: p.model, promptText, cwd: sandboxCwd,
           timeoutMs: p.spec.timeout_s * 1000, env, sessionId: tag,
           sandbox: cfg.codex.sandbox, approval: cfg.codex.approval, ephemeral: cfg.codex.ephemeral,
+          effort: cfg.codex.effort,
         })
         : await runOne({
           spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
