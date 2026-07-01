@@ -1,5 +1,6 @@
 export type Track = "frontier" | "local" | "crossover";
 export type Mode = "single_shot" | "agentic";
+export type RunnerBackend = "pi" | "codex";
 
 export function isTrack(x: string): x is Track {
   return x === "frontier" || x === "local" || x === "crossover";
@@ -66,6 +67,16 @@ export interface Distribution {
   median: number;
   min: number;
   max: number;
+  /** population standard deviation across runs */
+  stdev: number;
+  /** coefficient of variation = stdev / |mean|; 0 when mean is 0. Run-to-run instability. */
+  cv: number;
+}
+
+/** 95% confidence interval for a pass rate (Wilson score interval). */
+export interface Interval {
+  low: number;
+  high: number;
 }
 
 export interface CellSummary {
@@ -74,6 +85,8 @@ export interface CellSummary {
   model: string;
   n: number;
   passRate: number;
+  /** 95% Wilson interval on passRate — the reliability band, not a single-shot point. */
+  passRateCI: Interval;
   tokens: Distribution;
   cost: Distribution;
   cacheHitRatio: Distribution;

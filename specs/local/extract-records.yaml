@@ -1,0 +1,19 @@
+id: extract-records
+track: local
+mode: agentic
+prompt: |
+  Read input.txt. Extract every person into a JSON array written to result.json,
+  one object per person with exactly these keys: name, city, email.
+  Rules:
+    - city is the city name only (no state code, no punctuation).
+    - name is the person's two-word name in Title Case.
+  Write only result.json.
+models: ["anthropic/claude-haiku-4-5", "anthropic/claude-fable-5", "ollama/qwen3:1.7b"]
+reps: 3
+timeout_s: 180
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/extract-records
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [extraction, json, local]

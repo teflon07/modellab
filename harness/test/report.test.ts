@@ -2,17 +2,20 @@ import { test, expect } from "bun:test";
 import { renderMarkdown, renderCsv, renderJson } from "../src/report";
 import type { CellSummary } from "../src/types";
 
+const d = (median: number, min: number, max: number) => ({ median, min, max, stdev: 0, cv: 0 });
+
 const cells: CellSummary[] = [{
   track: "frontier", specId: "s1", model: "m1", n: 2, passRate: 1,
-  tokens: { median: 150, min: 100, max: 200 },
-  cost: { median: 0.03, min: 0.02, max: 0.04 },
-  cacheHitRatio: { median: 0, min: 0, max: 0 },
-  turns: { median: 1, min: 1, max: 1 },
-  toolCalls: { median: 0, min: 0, max: 0 },
-  wallClockMs: { median: 1000, min: 900, max: 1100 },
-  ttftMs: { median: 200, min: 180, max: 220 },
-  outputTps: { median: 30, min: 28, max: 32 },
-  peakContext: { median: 80, min: 70, max: 90 },
+  passRateCI: { low: 0.34, high: 1 },
+  tokens: d(150, 100, 200),
+  cost: { median: 0.03, min: 0.02, max: 0.04, stdev: 0.01, cv: 0.33 },
+  cacheHitRatio: d(0, 0, 0),
+  turns: d(1, 1, 1),
+  toolCalls: d(0, 0, 0),
+  wallClockMs: d(1000, 900, 1100),
+  ttftMs: d(200, 180, 220),
+  outputTps: d(30, 28, 32),
+  peakContext: d(80, 70, 90),
   costPerSuccess: 0.06, tokensPerSuccess: 300,
 }];
 
@@ -23,13 +26,17 @@ test("markdown groups by track and lists the model row", () => {
   expect(md).toContain("## frontier");
   expect(md).toContain("m1");
   expect(md).toContain("cost-per-success");
+  expect(md).toContain("pass 95% CI");
+  expect(md).toContain("cost cv%");
   expect(md).toContain("r1");
 });
 
-test("csv has a header and one data row per cell", () => {
+test("csv exposes reliability band and cost variance columns", () => {
   const csv = renderCsv(cells);
   const lines = csv.trim().split("\n");
   expect(lines[0]).toContain("track,spec,model");
+  expect(lines[0]).toContain("pass_ci_low,pass_ci_high");
+  expect(lines[0]).toContain("cost_cv");
   expect(lines.length).toBe(2);
   expect(lines[1]).toContain("frontier,s1,m1");
 });

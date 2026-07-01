@@ -1,0 +1,4 @@
+Contacts dump (raw, please clean up):
+- Maria Lopez, Tampa FL, maria.lopez@example.com
+- reach James Chen (Austin) at jchen@example.com
+- Priya Nair | Miami | priya@example.com

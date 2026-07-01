@@ -30,7 +30,8 @@ inference is worth it.
 
 ## Methodology
 
-- **Reps:** Each `(spec, model)` pair is run `reps` times (set per spec, typically 3-5). Results report median, min, and max. There is no cherry-picking: all reps are recorded, and the distribution is the result.
+- **Reps:** Each `(spec, model)` pair is run `reps` times (set per spec, typically 3-5). Results report median, min, max, standard deviation, and coefficient of variation for every metric. There is no cherry-picking: all reps are recorded, and the distribution is the result.
+- **Reliability, not a single shot:** Pass rate is reported with a 95% Wilson confidence interval (`pass_ci_low`/`pass_ci_high`). A model that passes 3/5 and one that passes 5/5 are not treated as the same; the band shows how much the rep count actually tells you. `cost_cv` surfaces run-to-run cost instability, so a model that passes reliably but at wildly varying spend is not mistaken for a stable one.
 - **Scoring:** Each spec declares its scoring method.
   - `programmatic` -- the fixture's `verify` commands must all exit 0. Binary pass/fail.
   - `judge` -- an LLM evaluator reads the model's output against a rubric file and returns a score from 0 to 1.0. The judge model and rubric are declared in the spec.
@@ -95,6 +96,21 @@ Results land in `results/<runId>/`:
 | `results.csv` | One row per rep, all metrics |
 | `results.json` | Same data, structured |
 
+### Run through Codex directly
+
+To run via your local Codex CLI authentication instead of `pi`, use the Codex
+config and override the spec model list with a Codex model:
+
+```sh
+bun run bench --config config/codex.yaml --models gpt-5.5 --run-id codex1
+```
+
+The Codex runner calls `codex exec --json` and reads token usage from the JSONL
+stream. It uses ChatGPT-managed Codex auth when your local Codex CLI is logged
+in that way. Cost is reported as `0` because subscription-backed Codex usage is
+not API-billed through this harness; use token counts, wall time, and pass rate
+as the comparable metrics for these runs.
+
 ---
 
 ## Spec format
@@ -122,14 +138,29 @@ tags: [my-tag]
 
 ## Current specs
 
-| ID | Track | Mode | Scoring |
-|---|---|---|---|
-| `extract-json` | local | single_shot | programmatic (smoke) |
-| `summarize-changelog` | crossover | single_shot | judge |
-| `fix-failing-test` | frontier | agentic | programmatic |
+These map to representative daily work (coding/automation, extraction, writing to
+house style, financial reasoning), scored automatically. The deterministic checkers
+(`verify.py`) are rule-based or recompute the answer from inputs, so they cannot be
+gamed by reading the sandbox; `harness/test/fixtures.test.ts` proves each one fails
+on a wrong/missing output and passes only on a correct one.
+
+| ID | Track | Mode | Scoring | Represents |
+|---|---|---|---|---|
+| `extract-json` | local | single_shot | programmatic (smoke) | schema output smoke test |
+| `extract-records` | local | agentic | programmatic (rule-based) | messy-text extraction |
+| `summarize-changelog` | crossover | single_shot | judge | summarization quality |
+| `style-constraints` | crossover | agentic | programmatic (rule-based) | writing to house style (no em dashes, honorifics, American spelling) |
+| `fix-failing-test` | frontier | agentic | programmatic | TypeScript bug fix |
+| `fix-bug-py` | frontier | agentic | programmatic | Python bug fix |
+| `financial-metric` | frontier | agentic | programmatic (recomputed) | numeric/financial reasoning |
+
+To swap in your own real tasks, copy a fixture dir, write a `verify.py` that exits
+non-zero on any wrong output, add a matching self-test case to `fixtures.test.ts`,
+and drop a spec in `specs/<track>/`.
 
 ---
 
 ## Roadmap
 
-- **Phase 2:** A live dashboard Benchmarks view that reads from the obs database and renders per-cell heatmaps, distribution charts, and cost-per-success rankings. This is not yet built.
+- **Phase 2 (done):** A live dashboard Benchmarks view reads modellab's `results/<runId>/` and renders per-cell heatmaps, per-run distribution strips, a cost/tokens-per-success ranking (with the 95% pass-rate band and run-to-run cost variance), and a regression watch that diffs each `(model, spec)` cell against its previous run. Lives in `tools/personal-dashboard` (`frontend/src/BenchmarksView.tsx`, `bench.ts`; `backend/sources/benchmarks.py`).
+- **Next:** schedule the same suite on a cadence (via the supervisor) so the regression watch has history to diff, and add a metered-vs-notional cost split for local/Codex runs whose `cost_total` is 0.
