@@ -93,7 +93,7 @@ abstract tokens.
 puzzles. On propagation-solvable puzzles (N=4, and N=5/K=5) the whole frontier is
 ~100% (Haiku 90%). But `logic-grid-hard`, which keeps only puzzles that **require
 search/backtracking**, separates them: **Fable 100%, Opus 100%, GPT-5.5 90%,
-Sonnet 80%** (GLM/Haiku pending). The difficulty lever that matters is *required
+GLM 90%, Sonnet 80%** (Haiku pending). The difficulty lever that matters is *required
 inference depth*, not board size — the deduction analog of path length for the
 maze. And the ordering echoes execution: Sonnet is the weakest of the frontier
 once the task is pushed.
@@ -128,6 +128,40 @@ Two headline reads:
   execution, 80% on search-required deduction), while **Fable and Opus are the
   robust pair** on both and GPT-5.5 sits between. Haiku trails on execution but is
   a competent deducer.
+
+---
+
+## Headline results (pass · median tokens · estimated $/success)
+
+Estimated cost is list-price notional: pi prices each run at the model's public
+per-token list rate, summed over all reps and divided by successes. It surfaces
+the price spread the token counts hide (Fable is $10/$50 per Mtok; Haiku/GLM are
+an order of magnitude cheaper). GPT-5.5's figure is a floor — its reasoning
+tokens may not be fully counted.
+
+**Execution — maze-solve 21×21 (96-move), 10 reps**
+
+| Model | Pass | Tokens (med) | Est. $/success |
+|---|---|---|---|
+| Fable 5 | 100% | 12.0K | $0.59 |
+| Opus 4.8 | 80% | 19.5K | $0.61 |
+| Sonnet 5 | 0% | 29.0K | — |
+
+**Deduction — logic-grid-hard (search-required 5×5), 10 reps**
+
+| Model | Pass | Tokens (med) | Est. $/success |
+|---|---|---|---|
+| Fable 5 | 100% | 4.5K | $0.24 |
+| Opus 4.8 | 100% | 10.7K | $0.26 |
+| GPT-5.5 | 90% | 5.2K | $0.16 |
+| GLM 5.2 | 90% | 9.0K | **$0.03** |
+| Sonnet 5 | 80% | 8.5K | $0.12 |
+| Haiku 4.5 | *pending* | | |
+
+**Cost inverts the capability ranking.** On deduction, GLM 5.2 solves 90% at
+~$0.03/success — an order of magnitude cheaper than the Anthropic frontier — and
+among the perfect scorers Fable ($0.24) edges Opus ($0.26). So "best" depends on
+the axis: **capability → Fable/Opus; value → GLM (deduction), Fable (execution).**
 
 ---
 
