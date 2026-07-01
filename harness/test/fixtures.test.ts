@@ -491,6 +491,23 @@ test("logic-grid: generates a unique puzzle per seed; verify accepts the solutio
   });
 });
 
+test("maze-keys: generates a solvable planning maze; verify accepts the reference path, rejects a naive one", () => {
+  withFixture("maze-keys", (dir) => {
+    expect(genStatus(dir, 5)).toBe(0);
+    const refPath = JSON.parse(readFileSync(join(dir, "solution.json"), "utf8")).path as string;
+    expect(refPath.length).toBeGreaterThan(0);
+    writeFileSync(join(dir, "response.txt"), refPath);
+    expect(verifyStatus(dir)).toBe(0);
+    writeFileSync(join(dir, "response.txt"), "DDDDDDDDDD"); // naive straight-line
+    expect(verifyStatus(dir)).not.toBe(0);
+    rmSync(join(dir, "response.txt"));
+    expect(verifyStatus(dir)).not.toBe(0);
+    const firstMaze = readFileSync(join(dir, "maze.txt"), "utf8");
+    expect(genStatus(dir, 6)).toBe(0);
+    expect(readFileSync(join(dir, "maze.txt"), "utf8")).not.toBe(firstMaze);
+  });
+});
+
 test("arc-lite: generates an abstraction puzzle; verify accepts the solution grid, rejects a wrong one", () => {
   withFixture("arc-lite", (dir) => {
     expect(genStatus(dir, 5)).toBe(0);

@@ -1,0 +1,15 @@
+id: maze-keys-hard
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5", "anthropic/claude-haiku-4-5", "anthropic/claude-fable-5", "openrouter/z-ai/glm-5.2"]
+reps: 10
+timeout_s: 400
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-keys
+  # Two key/door pairs on a larger grid: forces ordering (open one door to reach
+  # the next key) on top of a longer path.
+  generator: "MAZE_KEYS=2 MAZE_N=13 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, planning, execution, generated, hard-ceiling]
