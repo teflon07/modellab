@@ -4,7 +4,7 @@ obs:
   token: devtoken
   pool: benchmark
   extension_path: ~/.pi/observability/extension/pi-observability.ts
-pi_version: "0.78.1"
+pi_version: "0.80.3"
 prices:
   # An entry here OVERRIDES the provider-reported cost for that model (see
   # priceOverride in harness/src/config.ts). Only list models pi prices wrong

@@ -1,5 +1,6 @@
 import { parse as parseYaml } from "yaml";
 import { readFileSync } from "node:fs";
+import type { RunnerBackend } from "./types";
 
 export interface PriceEntry {
   input_per_mtok: number;
@@ -7,6 +8,7 @@ export interface PriceEntry {
 }
 
 export interface Config {
+  runner: RunnerBackend;
   obs: {
     db_path: string;
     server_url: string;
@@ -14,25 +16,50 @@ export interface Config {
     pool: string;
     extension_path?: string;
   };
+  codex: {
+    sandbox: "read-only" | "workspace-write" | "danger-full-access";
+    approval: "never" | "on-request" | "untrusted";
+    ephemeral: boolean;
+    judge_model?: string;
+  };
   pi_version: string;
   prices: Record<string, PriceEntry>;
 }
 
 export function parseConfig(text: string): Config {
   const raw = parseYaml(text) ?? {};
-  if (!raw.obs?.db_path) throw new Error("config: obs.db_path is required");
+  const runner = String(raw.runner ?? "pi");
+  if (runner !== "pi" && runner !== "codex") {
+    throw new Error("config: runner must be 'pi' or 'codex'");
+  }
+  if (runner === "pi" && !raw.obs?.db_path) throw new Error("config: obs.db_path is required");
   const prices: Record<string, PriceEntry> = {};
   for (const [k, v] of Object.entries(raw.prices ?? {})) {
     const e = v as any;
     prices[k] = { input_per_mtok: Number(e.input_per_mtok), output_per_mtok: Number(e.output_per_mtok) };
   }
+  const sandbox = String(raw.codex?.sandbox ?? "workspace-write");
+  if (sandbox !== "read-only" && sandbox !== "workspace-write" && sandbox !== "danger-full-access") {
+    throw new Error("config: codex.sandbox must be read-only, workspace-write, or danger-full-access");
+  }
+  const approval = String(raw.codex?.approval ?? "never");
+  if (approval !== "never" && approval !== "on-request" && approval !== "untrusted") {
+    throw new Error("config: codex.approval must be never, on-request, or untrusted");
+  }
   return {
+    runner,
     obs: {
-      db_path: String(raw.obs.db_path),
-      server_url: String(raw.obs.server_url ?? "http://127.0.0.1:43190"),
-      token: String(raw.obs.token ?? "devtoken"),
-      pool: String(raw.obs.pool ?? "benchmark"),
-      extension_path: raw.obs.extension_path ? String(raw.obs.extension_path) : undefined,
+      db_path: String(raw.obs?.db_path ?? ""),
+      server_url: String(raw.obs?.server_url ?? "http://127.0.0.1:43190"),
+      token: String(raw.obs?.token ?? "devtoken"),
+      pool: String(raw.obs?.pool ?? "benchmark"),
+      extension_path: raw.obs?.extension_path ? String(raw.obs.extension_path) : undefined,
+    },
+    codex: {
+      sandbox,
+      approval,
+      ephemeral: raw.codex?.ephemeral === undefined ? true : Boolean(raw.codex.ephemeral),
+      judge_model: raw.codex?.judge_model ? String(raw.codex.judge_model) : undefined,
     },
     pi_version: String(raw.pi_version ?? "unknown"),
     prices,

@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildPiArgs } from "../src/runner";
+import { buildCodexArgs, buildPiArgs, collectCodexMetrics } from "../src/runner";
 import type { Spec } from "../src/types";
 
 const base: Spec = {
@@ -52,4 +52,53 @@ test("omitting obsExtensionPath emits no -e flag", () => {
     pool: "benchmark", promptText: "hello world",
   });
   expect(args).not.toContain("-e");
+});
+
+test("codex args run exec JSONL through ChatGPT-authenticated CLI", () => {
+  const args = buildCodexArgs({
+    spec: base,
+    model: "gpt-5.5",
+    promptText: "hello world",
+    cwd: "/tmp/lab",
+    sandbox: "workspace-write",
+    approval: "never",
+    ephemeral: true,
+  });
+  expect(args.slice(0, 4)).toEqual(["-a", "never", "exec", "--json"]);
+  expect(args).toContain("-C");
+  expect(args).toContain("/tmp/lab");
+  expect(args).toContain("--skip-git-repo-check");
+  expect(args).toContain("--sandbox");
+  expect(args).toContain("read-only");
+  expect(args).toContain("--model");
+  expect(args).toContain("gpt-5.5");
+  expect(args).toContain("--ephemeral");
+  expect(args[args.length - 1]).toBe("hello world");
+});
+
+test("collectCodexMetrics parses final message and token usage", () => {
+  const jsonl = [
+    JSON.stringify({ type: "thread.started", thread_id: "thread-1" }),
+    JSON.stringify({ type: "item.completed", item: { type: "command_execution", command: "ls" } }),
+    JSON.stringify({ type: "item.completed", item: { type: "agent_message", text: "done" } }),
+    JSON.stringify({
+      type: "turn.completed",
+      usage: {
+        input_tokens: 100,
+        cached_input_tokens: 40,
+        output_tokens: 20,
+        reasoning_output_tokens: 5,
+      },
+    }),
+  ].join("\n");
+  const out = collectCodexMetrics(jsonl, "fallback", 1234, false);
+  expect(out.finalMessage).toBe("done");
+  expect(out.metrics.sessionId).toBe("thread-1");
+  expect(out.metrics.inputTokens).toBe(100);
+  expect(out.metrics.cacheRead).toBe(40);
+  expect(out.metrics.outputTokens).toBe(25);
+  expect(out.metrics.totalTokens).toBe(125);
+  expect(out.metrics.toolCalls).toBe(1);
+  expect(out.metrics.turns).toBe(1);
+  expect(out.metrics.costTotal).toBe(0);
 });

@@ -1,0 +1,10 @@
+runner: codex
+codex:
+  # single_shot specs are forced to read-only by the harness; this applies to
+  # agentic specs that need to edit sandboxed fixtures.
+  sandbox: workspace-write
+  approval: never
+  ephemeral: true
+  judge_model: gpt-5.5
+pi_version: "codex-cli 0.135.0-alpha.1"
+prices: {}
