@@ -22,11 +22,16 @@ export interface PlannedRun {
   rep: number;
 }
 
-export function planRuns(specs: Array<{ path: string; spec: Spec }>, modelsOverride?: string[]): PlannedRun[] {
+export function planRuns(
+  specs: Array<{ path: string; spec: Spec }>,
+  modelsOverride?: string[],
+  repsOverride?: number,
+): PlannedRun[] {
   const plan: PlannedRun[] = [];
   for (const { path, spec } of specs) {
+    const reps = repsOverride && repsOverride > 0 ? repsOverride : spec.reps;
     for (const model of modelsOverride?.length ? modelsOverride : spec.models) {
-      for (let rep = 1; rep <= spec.reps; rep++) {
+      for (let rep = 1; rep <= reps; rep++) {
         plan.push({ path, spec, model, rep });
       }
     }
@@ -42,10 +47,10 @@ function repoRoot(): string {
 async function main(): Promise<void> {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { "run-id": { type: "string" }, config: { type: "string" }, models: { type: "string" }, specs: { type: "string" } },
+    options: { "run-id": { type: "string" }, config: { type: "string" }, models: { type: "string" }, specs: { type: "string" }, reps: { type: "string" } },
   });
   if (positionals[0] !== "bench") {
-    console.error("usage: modellab bench [--run-id <id>] [--config <path>] [--models <comma-separated-models>] [--specs <comma-separated-spec-ids>]");
+    console.error("usage: modellab bench [--run-id <id>] [--config <path>] [--models <comma-separated-models>] [--specs <comma-separated-spec-ids>] [--reps <n>]");
     process.exit(2);
   }
   const root = repoRoot();
@@ -73,7 +78,12 @@ async function main(): Promise<void> {
   const modelsOverride = values.models
     ? values.models.split(",").map((m) => m.trim()).filter(Boolean)
     : undefined;
-  const plan = planRuns(specs, modelsOverride);
+  const repsOverride = values.reps ? parseInt(values.reps, 10) : undefined;
+  if (values.reps && (!repsOverride || repsOverride < 1)) {
+    console.error(`invalid --reps: ${values.reps}`);
+    process.exit(2);
+  }
+  const plan = planRuns(specs, modelsOverride, repsOverride);
   const obsEnv = {
     OBS_ENABLE: "true",
     OBS_SERVER_URL: cfg.obs.server_url,
