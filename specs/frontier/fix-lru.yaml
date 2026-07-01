@@ -1,0 +1,18 @@
+id: fix-lru
+track: frontier
+mode: agentic
+prompt: |
+  lru.py implements an LRU cache but has more than one bug: eviction behavior is
+  wrong. Fix lru.py so it behaves as a correct fixed-capacity LRU cache (reads
+  and writes both refresh recency; capacity is respected exactly; the
+  least-recently-used key is evicted first). Make `python3 verify.py` pass. Do
+  not edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 400
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/fix-lru
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [debugging, agentic, python, hard-ceiling]

@@ -1,0 +1,20 @@
+id: semver-compare
+track: frontier
+mode: agentic
+prompt: |
+  Implement the compare(a, b) function in semver.py per its docstring: compare
+  two semantic-version strings by semver.org precedence, returning -1/0/1. Get
+  the pre-release rules right (a pre-release ranks below the release; numeric
+  identifiers rank below alphanumeric; more identifiers rank higher when all
+  preceding are equal) and ignore build metadata. Raise ValueError on malformed
+  input. Implement it yourself; do not import a semver/packaging library. Make
+  `python3 verify.py` pass. Do not edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 400
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/semver-compare
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [coding, agentic, python, spec-compliance, hard-ceiling]

@@ -1,0 +1,20 @@
+id: expr-eval
+track: frontier
+mode: agentic
+prompt: |
+  Implement the evaluate() function in evaluator.py per its docstring: a correct
+  arithmetic expression evaluator supporting + - * /, parentheses, unary minus,
+  integer and decimal literals, and whitespace, with standard precedence and
+  left associativity, raising ValueError on any malformed input (including
+  division by zero). Write the parser yourself; do not use eval/exec/literal_eval
+  or any expression-evaluation library. Make `python3 verify.py` pass. Do not
+  edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 400
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/expr-eval
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [coding, agentic, python, hard-ceiling]
