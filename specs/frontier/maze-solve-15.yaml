@@ -1,0 +1,13 @@
+id: maze-solve-15
+track: frontier
+mode: single_shot
+prompt_file: ../../prompts/maze-solve-15.md
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5"]
+reps: 10
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-solve-15
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, spatial, visual, hard-ceiling]

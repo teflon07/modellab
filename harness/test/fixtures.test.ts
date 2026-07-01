@@ -434,3 +434,15 @@ test("maze-solve: rejects missing/wall-hitting paths, accepts valid path (plain 
     expect(verifyStatus(dir)).toBe(0);
   });
 });
+
+const MAZE15_PATH = "DDDDRRRRUULLUURRRRRRRRDDLLLLDDDDLLDDLLLLDDRRRRRRDDRRUUUUUUUURRDDRRDDDDDD";
+
+test("maze-solve-15: rejects wall-hitting path, accepts the 72-move solution", () => {
+  withFixture("maze-solve-15", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // no response.txt
+    writeFileSync(join(dir, "response.txt"), "RRRR"); // (1,1)->right hits the wall at (1,2)
+    expect(verifyStatus(dir)).not.toBe(0);
+    writeFileSync(join(dir, "response.txt"), MAZE15_PATH + "\n");
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
