@@ -212,3 +212,225 @@ test("financial-trap: rejects the naive (include one-time gain) answer; accepts 
     expect(verifyStatus(dir)).toBe(0);
   });
 });
+
+// ---- Hard-ceiling tier: reference solutions double as a check that the
+// verifier batteries themselves are correct (a bad expected value would make
+// the reference fail here), plus a shortcut/partial-fix "still fails" case. ----
+
+const EXPR_EVAL_CHEAT = "def evaluate(expr):\n    return float(eval(expr))\n";
+const EXPR_EVAL_REF = String.raw`import re
+_NUM = re.compile(r"\d+(\.\d+)?")
+def _tokenize(expr):
+    tokens = []
+    i = 0
+    while i < len(expr):
+        c = expr[i]
+        if c.isspace():
+            i += 1
+            continue
+        if c in "+-*/()":
+            tokens.append(c)
+            i += 1
+            continue
+        m = _NUM.match(expr, i)
+        if not m:
+            raise ValueError("bad char")
+        tokens.append(float(m.group()))
+        i = m.end()
+    return tokens
+def evaluate(expr):
+    tokens = _tokenize(expr)
+    pos = 0
+    def peek():
+        return tokens[pos] if pos < len(tokens) else None
+    def advance():
+        nonlocal pos
+        t = tokens[pos]
+        pos += 1
+        return t
+    def expr_():
+        val = term()
+        while peek() in ("+", "-"):
+            op = advance()
+            r = term()
+            val = val + r if op == "+" else val - r
+        return val
+    def term():
+        val = factor()
+        while peek() in ("*", "/"):
+            op = advance()
+            r = factor()
+            if op == "*":
+                val *= r
+            else:
+                if r == 0:
+                    raise ValueError("division by zero")
+                val /= r
+        return val
+    def factor():
+        t = peek()
+        if t is None:
+            raise ValueError("unexpected end")
+        if t == "-":
+            advance()
+            return -factor()
+        if t == "+":
+            advance()
+            return factor()
+        if t == "(":
+            advance()
+            v = expr_()
+            if peek() != ")":
+                raise ValueError("expected )")
+            advance()
+            return v
+        if isinstance(t, float):
+            advance()
+            return t
+        raise ValueError("unexpected token")
+    if not tokens:
+        raise ValueError("empty")
+    result = expr_()
+    if pos != len(tokens):
+        raise ValueError("trailing")
+    return float(result)
+`;
+
+const SEMVER_NAIVE =
+  "def compare(a, b):\n" +
+  "    pa = tuple(int(x) for x in a.split('+')[0].split('-')[0].split('.'))\n" +
+  "    pb = tuple(int(x) for x in b.split('+')[0].split('-')[0].split('.'))\n" +
+  "    return -1 if pa < pb else (1 if pa > pb else 0)\n";
+const SEMVER_REF = String.raw`import re
+_CORE = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+([0-9A-Za-z.-]+))?$")
+def _parse(v):
+    m = _CORE.match(v)
+    if not m:
+        raise ValueError("invalid")
+    major, minor, patch, pre, _build = m.groups()
+    ids = []
+    if pre is not None:
+        for p in pre.split("."):
+            if p == "":
+                raise ValueError("empty identifier")
+            ids.append(p)
+    return (int(major), int(minor), int(patch), ids)
+def _cmp_pre(a, b):
+    for x, y in zip(a, b):
+        xn, yn = x.isdigit(), y.isdigit()
+        if xn and yn:
+            xi, yi = int(x), int(y)
+            if xi != yi:
+                return -1 if xi < yi else 1
+        elif xn != yn:
+            return -1 if xn else 1
+        elif x != y:
+            return -1 if x < y else 1
+    if len(a) != len(b):
+        return -1 if len(a) < len(b) else 1
+    return 0
+def compare(a, b):
+    pa = _parse(a)
+    pb = _parse(b)
+    if pa[:3] != pb[:3]:
+        return -1 if pa[:3] < pb[:3] else 1
+    ia, ib = pa[3], pb[3]
+    if ia and not ib:
+        return -1
+    if ib and not ia:
+        return 1
+    if not ia and not ib:
+        return 0
+    return _cmp_pre(ia, ib)
+`;
+
+const LRU_PARTIAL = `class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self._data = {}
+        self._order = []
+    def get(self, key):
+        return self._data.get(key)
+    def put(self, key, value):
+        if key in self._data:
+            self._data[key] = value
+            self._order.remove(key)
+            self._order.append(key)
+            return
+        self._data[key] = value
+        self._order.append(key)
+        if len(self._data) > self.capacity:
+            del self._data[self._order.pop(0)]
+`;
+const LRU_REF = `class LRUCache:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self._data = {}
+        self._order = []
+    def get(self, key):
+        if key not in self._data:
+            return None
+        self._order.remove(key)
+        self._order.append(key)
+        return self._data[key]
+    def put(self, key, value):
+        if key in self._data:
+            self._data[key] = value
+            self._order.remove(key)
+            self._order.append(key)
+            return
+        self._data[key] = value
+        self._order.append(key)
+        if len(self._data) > self.capacity:
+            del self._data[self._order.pop(0)]
+`;
+
+test("expr-eval: stub fails, eval-shortcut is rejected, a real parser passes", () => {
+  withFixture("expr-eval", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // NotImplementedError stub
+    writeFileSync(join(dir, "evaluator.py"), EXPR_EVAL_CHEAT);
+    expect(verifyStatus(dir)).not.toBe(0); // anti-shortcut guard bites
+    writeFileSync(join(dir, "evaluator.py"), EXPR_EVAL_REF);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+test("semver-compare: stub fails, core-only naive fails, full precedence passes", () => {
+  withFixture("semver-compare", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // NotImplementedError stub
+    writeFileSync(join(dir, "semver.py"), SEMVER_NAIVE);
+    expect(verifyStatus(dir)).not.toBe(0); // ignores pre-release rules
+    writeFileSync(join(dir, "semver.py"), SEMVER_REF);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+test("fix-lru: shipped fails, capacity-only fix fails, fixing both passes", () => {
+  withFixture("fix-lru", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // both bugs present
+    writeFileSync(join(dir, "lru.py"), LRU_PARTIAL);
+    expect(verifyStatus(dir)).not.toBe(0); // recency-on-read still broken
+    writeFileSync(join(dir, "lru.py"), LRU_REF);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+const MAZE_PATH = "RRRRRRDDLLDDDDLLDDRRRRUUUURRDDDD";
+
+test("maze-solve: rejects missing/wall-hitting paths, accepts valid path (plain + JSONL)", () => {
+  withFixture("maze-solve", (dir) => {
+    expect(verifyStatus(dir)).not.toBe(0); // no response.txt
+    writeFileSync(join(dir, "response.txt"), "DDDD"); // first step walks into a wall
+    expect(verifyStatus(dir)).not.toBe(0);
+    writeFileSync(join(dir, "response.txt"), MAZE_PATH + "\n"); // plain-text valid path
+    expect(verifyStatus(dir)).toBe(0);
+    // same path wrapped in pi's JSONL stream — exercises the extractor
+    const jsonl = [
+      JSON.stringify({ type: "session" }),
+      JSON.stringify({ type: "message_end", message: { role: "user", content: [{ type: "text", text: "solve" }] } }),
+      JSON.stringify({ type: "message_end", message: { role: "assistant", content: [{ type: "thinking", thinking: "..." }, { type: "text", text: MAZE_PATH }] } }),
+    ].join("\n") + "\n";
+    writeFileSync(join(dir, "response.txt"), jsonl);
+    expect(verifyStatus(dir)).toBe(0);
+  });
+});

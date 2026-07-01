@@ -1,0 +1,13 @@
+id: maze-solve
+track: frontier
+mode: single_shot
+prompt_file: ../../prompts/maze-solve.md
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 240
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-solve
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, spatial, visual, hard-ceiling]
