@@ -490,3 +490,22 @@ test("logic-grid: generates a unique puzzle per seed; verify accepts the solutio
     expect(readFileSync(join(dir, "solution.json"), "utf8")).not.toBe(first);
   });
 });
+
+test("arc-lite: generates an abstraction puzzle; verify accepts the solution grid, rejects a wrong one", () => {
+  withFixture("arc-lite", (dir) => {
+    expect(genStatus(dir, 5)).toBe(0);
+    const sol = JSON.parse(readFileSync(join(dir, "solution.json"), "utf8")) as number[][];
+    const asGrid = (g: number[][]) => g.map((r) => r.join(" ")).join("\n");
+    writeFileSync(join(dir, "response.txt"), asGrid(sol));
+    expect(verifyStatus(dir)).toBe(0);
+    const bad = sol.map((r) => [...r]);
+    bad[0][0] = (bad[0][0] + 1) % 4;
+    writeFileSync(join(dir, "response.txt"), asGrid(bad));
+    expect(verifyStatus(dir)).not.toBe(0);
+    rmSync(join(dir, "response.txt"));
+    expect(verifyStatus(dir)).not.toBe(0);
+    const first = readFileSync(join(dir, "solution.json"), "utf8");
+    expect(genStatus(dir, 6)).toBe(0);
+    expect(readFileSync(join(dir, "solution.json"), "utf8")).not.toBe(first);
+  });
+});

@@ -1,0 +1,15 @@
+id: arc-lite
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5", "anthropic/claude-haiku-4-5", "anthropic/claude-fable-5", "openrouter/z-ai/glm-5.2"]
+reps: 10
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/arc-lite
+  # Abstraction/induction: infer a single hidden grid transform from examples,
+  # apply to a test input. Fresh rule + grids per rep (generalization).
+  generator: "python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, abstraction, induction, generated, hard-ceiling]
