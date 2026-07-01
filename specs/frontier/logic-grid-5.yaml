@@ -1,0 +1,15 @@
+id: logic-grid-5
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5", "openai-codex/gpt-5.5", "anthropic/claude-haiku-4-5", "anthropic/claude-fable-5", "openrouter/z-ai/glm-5.2"]
+reps: 10
+timeout_s: 400
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/logic-grid
+  # Full Zebra scale: 5 positions x 5 categories. The N=4/K=3 tier saturates
+  # (every model 100%); this is the deduction analog of the 21x21 maze.
+  generator: "LOGIC_N=5 LOGIC_K=5 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, deduction, generated, hard-ceiling]
