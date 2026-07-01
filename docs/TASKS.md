@@ -93,7 +93,7 @@ abstract tokens.
 puzzles. On propagation-solvable puzzles (N=4, and N=5/K=5) the whole frontier is
 ~100% (Haiku 90%). But `logic-grid-hard`, which keeps only puzzles that **require
 search/backtracking**, separates them: **Fable 100%, Opus 100%, GPT-5.5 90%,
-GLM 90%, Sonnet 80%** (Haiku pending). The difficulty lever that matters is *required
+GLM 90%, Sonnet 80%, Haiku 50%**. The difficulty lever that matters is *required
 inference depth*, not board size — the deduction analog of path length for the
 maze. And the ordering echoes execution: Sonnet is the weakest of the frontier
 once the task is pushed.
@@ -113,7 +113,7 @@ answer. `arc-lite-hard` composes two transforms (harder to induce).
 | Faculty | Does it separate the frontier? | Notes |
 |---|---|---|
 | Execution (long-horizon) | **Yes, at scale** | 96-move maze: Fable 100 / Opus 80 / Sonnet 0 |
-| Deduction | **Only when search-required** | easy & Zebra-scale saturate (~100%); search-required tier: Fable/Opus 100 > GPT-5.5 90 > Sonnet 80 |
+| Deduction | **Only when search-required** | easy & Zebra-scale saturate (~100%); search-required tier: Fable/Opus 100 > GPT-5.5/GLM 90 > Sonnet 80 > Haiku 50 |
 | Abstraction | *pending run* | expected to separate most (frontier weakest here) |
 | Planning | *pending run* | |
 | 3D representation | *pending run* | |
@@ -167,7 +167,7 @@ GLM/Haiku beyond 44) — cheap to fill.
 | GPT-5.5 | 90% | 5.2K | $0.16 |
 | GLM 5.2 | 90% | 9.0K | **$0.03** |
 | Sonnet 5 | 80% | 8.5K | $0.12 |
-| Haiku 4.5 | *pending* | | |
+| Haiku 4.5 | 50% | 24.7K | $0.25 |
 
 **Cost inverts the capability ranking.** On deduction, GLM 5.2 solves 90% at
 ~$0.03/success — an order of magnitude cheaper than the Anthropic frontier — and
