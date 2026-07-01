@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Generate a uniquely-solvable logic-grid (Zebra-style) puzzle, seeded by
-MODELLAB_SEED so each rep is a fresh instance. Writes prompt.txt (the puzzle the
-model sees) and solution.json (the unique answer, for verify only).
+MODELLAB_SEED so each rep is a fresh instance. Writes prompt.txt (what the model
+sees) and solution.json (the unique answer, for verify only).
 
-N positions in a row, 3 categories, each value used once. Clues are relational
-(adjacency, ordering, association, negation, ends). We build a pool of true
-clues, guarantee uniqueness with a brute-force solver, then greedily minimize
-the clue set so the puzzle requires real deduction rather than direct lookup.
+Difficulty dials (env): LOGIC_N = entities/positions (default 4), LOGIC_K =
+number of categories (default 3). Uniqueness is checked with a backtracking CSP
+solver (counts up to 2 solutions), so N and K can scale without the brute-force
+blowup. Clues are relational; we minimize the clue set so the puzzle needs real
+deduction rather than direct lookup.
 """
 import itertools
 import json
@@ -14,102 +15,95 @@ import os
 import random
 
 N = int(os.environ.get("LOGIC_N", "4"))
+K = int(os.environ.get("LOGIC_K", "3"))
 SEED = int(os.environ.get("MODELLAB_SEED", "0"))
 rng = random.Random(SEED * 7919 + 1234567)
 
-CATS = {
-    "color": ["red", "green", "blue", "white", "yellow"][:N],
-    "pet": ["dog", "cat", "bird", "fish", "horse"][:N],
-    "drink": ["tea", "coffee", "milk", "water", "juice"][:N],
+ALL_CATS = {
+    "color": ["red", "green", "blue", "white", "yellow", "black"],
+    "pet": ["dog", "cat", "bird", "fish", "horse", "rabbit"],
+    "drink": ["tea", "coffee", "milk", "water", "juice", "cola"],
+    "hobby": ["chess", "painting", "hiking", "cooking", "reading", "gaming"],
+    "sport": ["soccer", "tennis", "golf", "swimming", "running", "cycling"],
 }
-CAT_NAMES = list(CATS)
-VALS = [(c, v) for c in CAT_NAMES for v in CATS[c]]
+CAT_NAMES = list(ALL_CATS)[:K]
+CATS = {c: ALL_CATS[c][:N] for c in CAT_NAMES}
+VALUES = [v for c in CAT_NAMES for v in CATS[c]]  # globally unique across categories
 
-# Ground truth: each category is a random arrangement over positions (0-indexed).
-truth = {c: rng.sample(v, len(v)) for c, v in CATS.items()}
+# Ground truth: each category is a random arrangement over positions 1..N.
+truth = {}  # value -> position
+for c in CAT_NAMES:
+    for p, v in enumerate(rng.sample(CATS[c], N), 1):
+        truth[v] = p
 
-
-def pos_of(asg, value):
-    for c in CAT_NAMES:
-        if value in asg[c]:
-            return asg[c].index(value)
-    raise KeyError(value)
-
-
-# Predicate factories (capture args by value, no default-arg trickery).
-def p_at(c, p, v):
-    return lambda a: a[c][p] == v
-
-
-def p_same(c1, v1, c2, v2):
-    return lambda a: a[c1].index(v1) == a[c2].index(v2)
-
-
-def p_notsame(c1, v1, c2, v2):
-    return lambda a: a[c1].index(v1) != a[c2].index(v2)
-
-
-def p_ladj(v1, v2):
-    return lambda a: pos_of(a, v1) + 1 == pos_of(a, v2)
-
-
-def p_left(v1, v2):
-    return lambda a: pos_of(a, v1) < pos_of(a, v2)
-
-
-def p_next(v1, v2):
-    return lambda a: abs(pos_of(a, v1) - pos_of(a, v2)) == 1
-
-
-def p_end(c, v):
-    return lambda a: a[c].index(v) in (0, N - 1)
-
-
-def make_clue_pool():
+# Clues: (text, [values it references], predicate(pos_map)). The predicate is
+# only evaluated once every referenced value has an assigned position.
+def build_pool():
     pool = []
 
-    def add(text, pred):
-        if pred(truth):
-            pool.append((text, pred))
+    def add(text, vals, fn):
+        if fn(truth):
+            pool.append((text, vals, fn))
 
-    for c, v in VALS:
-        add(f"The {v} is in position {truth[c].index(v) + 1}.", p_at(c, truth[c].index(v), v))
-        add(f"{v} is at one of the two ends.", p_end(c, v))
-
-    for (c1, v1), (c2, v2) in itertools.combinations(VALS, 2):
-        if c1 == c2:
-            continue
-        add(f"The one with {v1} also has {v2}.", p_same(c1, v1, c2, v2))
-        add(f"The one with {v1} does not have {v2}.", p_notsame(c1, v1, c2, v2))
-
-    for (_, v1), (_, v2) in itertools.permutations(VALS, 2):
-        if v1 == v2:
-            continue
-        add(f"{v1} is immediately to the left of {v2}.", p_ladj(v1, v2))
-        add(f"{v1} is somewhere to the left of {v2}.", p_left(v1, v2))
-        add(f"{v1} is directly next to {v2}.", p_next(v1, v2))
-
+    for v in VALUES:
+        add(f"{v} is at one of the two ends.", [v], lambda pos, v=v: pos[v] in (1, N))
+    for a, b in itertools.combinations(VALUES, 2):
+        ca = next(c for c in CAT_NAMES if a in CATS[c])
+        cb = next(c for c in CAT_NAMES if b in CATS[c])
+        if ca != cb:
+            add(f"The one with {a} also has {b}.", [a, b], lambda pos, a=a, b=b: pos[a] == pos[b])
+            add(f"The one with {a} does not have {b}.", [a, b], lambda pos, a=a, b=b: pos[a] != pos[b])
+    for a, b in itertools.permutations(VALUES, 2):
+        add(f"{a} is immediately to the left of {b}.", [a, b], lambda pos, a=a, b=b: pos[a] + 1 == pos[b])
+        add(f"{a} is somewhere to the left of {b}.", [a, b], lambda pos, a=a, b=b: pos[a] < pos[b])
+        add(f"{a} is directly next to {b}.", [a, b], lambda pos, a=a, b=b: abs(pos[a] - pos[b]) == 1)
     rng.shuffle(pool)
     return pool
 
 
-def count_solutions(preds, limit=2):
-    perms = {c: list(itertools.permutations(CATS[c])) for c in CAT_NAMES}
+def count_solutions(clues, limit=2):
+    varlist = [(c, v) for c in CAT_NAMES for v in CATS[c]]
+    by_value = {}
+    for cl in clues:
+        for v in cl[1]:
+            by_value.setdefault(v, []).append(cl)
+    pos = {}
+    used = {c: set() for c in CAT_NAMES}
     count = 0
-    for combo in itertools.product(*[perms[c] for c in CAT_NAMES]):
-        asg = {c: list(combo[i]) for i, c in enumerate(CAT_NAMES)}
-        if all(p(asg) for _, p in preds):
+
+    def bt(i):
+        nonlocal count
+        if count >= limit:
+            return
+        if i == len(varlist):
             count += 1
+            return
+        c, v = varlist[i]
+        for p in range(1, N + 1):
+            if p in used[c]:
+                continue
+            pos[v] = p
+            used[c].add(p)
+            ok = True
+            for cl in by_value.get(v, ()):
+                if all(x in pos for x in cl[1]) and not cl[2](pos):
+                    ok = False
+                    break
+            if ok:
+                bt(i + 1)
+            del pos[v]
+            used[c].discard(p)
             if count >= limit:
-                return count
+                return
+
+    bt(0)
     return count
 
 
-clues = make_clue_pool()
+clues = build_pool()
 if count_solutions(clues) != 1:
     raise SystemExit("generator: clue pool is not uniquely solvable (unexpected)")
 
-# Greedily drop clues while the solution stays unique -> a minimal, deduction-heavy set.
 i = 0
 while i < len(clues):
     trial = clues[:i] + clues[i + 1:]
@@ -119,24 +113,26 @@ while i < len(clues):
         i += 1
 
 rng.shuffle(clues)
-solution = {str(p + 1): {c: truth[c][p] for c in CAT_NAMES} for p in range(N)}
+solution = {str(p): {c: next(v for v in CATS[c] if truth[v] == p) for c in CAT_NAMES}
+            for p in range(1, N + 1)}
 
 lines = [
     f"There are {N} positions in a row, numbered 1 to {N} (left to right).",
-    "Each position has exactly one color, one pet, and one drink.",
+    f"Each position has exactly one {', one '.join(CAT_NAMES)}.",
     "Each value below is used exactly once across the positions:",
 ]
 for c in CAT_NAMES:
     lines.append(f"  {c}s: {', '.join(CATS[c])}")
-lines.append("")
-lines.append("Clues:")
-for n, (text, _) in enumerate(clues, 1):
+lines += ["", "Clues:"]
+for n, (text, _, _) in enumerate(clues, 1):
     lines.append(f"{n}. {text}")
-lines.append("")
-lines.append("Using only the clues, determine the full assignment. Output ONLY a JSON")
-lines.append(f'object mapping each position ("1".."{N}") to its ' + '{"color","pet","drink"},')
-lines.append("with no other text. Example:")
-lines.append('{"1": {"color": "...", "pet": "...", "drink": "..."}, "2": {...}}')
+lines += [
+    "",
+    "Using only the clues, determine the full assignment. Output ONLY a JSON",
+    f'object mapping each position ("1".."{N}") to its ' + "{" + ", ".join(f'"{c}"' for c in CAT_NAMES) + "},",
+    "with no other text. Example:",
+    '{"1": {' + ", ".join(f'"{c}": "..."' for c in CAT_NAMES) + "}, \"2\": {...}}",
+]
 
 open("prompt.txt", "w").write("\n".join(lines) + "\n")
 open("solution.json", "w").write(json.dumps(solution))
