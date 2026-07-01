@@ -3,7 +3,7 @@
 // each case asserts the shipped/wrong state FAILS and a correct solution PASSES.
 // This runs the real python3 verifier the harness uses, in a throwaway copy.
 import { test, expect } from "bun:test";
-import { cpSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -457,5 +457,36 @@ test("maze-solve-21: rejects wall-hitting path, accepts the 96-move solution", (
     expect(verifyStatus(dir)).not.toBe(0);
     writeFileSync(join(dir, "response.txt"), MAZE21_PATH + "\n");
     expect(verifyStatus(dir)).toBe(0);
+  });
+});
+
+function genStatus(dir: string, seed: number): number {
+  const r = spawnSync("python3", ["gen.py"], {
+    cwd: dir, encoding: "utf8", env: { ...process.env, MODELLAB_SEED: String(seed) },
+  });
+  if (r.error) throw r.error;
+  return r.status ?? 1;
+}
+
+test("logic-grid: generates a unique puzzle per seed; verify accepts the solution, rejects a wrong one", () => {
+  withFixture("logic-grid", (dir) => {
+    // Generator produces a uniquely-solvable instance (exits non-zero if not).
+    expect(genStatus(dir, 3)).toBe(0);
+    const solution = readFileSync(join(dir, "solution.json"), "utf8");
+    // Correct assignment passes.
+    writeFileSync(join(dir, "response.txt"), solution);
+    expect(verifyStatus(dir)).toBe(0);
+    // Swapping two positions' colors breaks it.
+    const s = JSON.parse(solution);
+    [s["1"].color, s["2"].color] = [s["2"].color, s["1"].color];
+    writeFileSync(join(dir, "response.txt"), JSON.stringify(s));
+    expect(verifyStatus(dir)).not.toBe(0);
+    // Missing answer fails.
+    rmSync(join(dir, "response.txt"));
+    expect(verifyStatus(dir)).not.toBe(0);
+    // A different seed yields a different puzzle (generalization, not one fixed instance).
+    const first = solution;
+    expect(genStatus(dir, 4)).toBe(0);
+    expect(readFileSync(join(dir, "solution.json"), "utf8")).not.toBe(first);
   });
 });

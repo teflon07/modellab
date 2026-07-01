@@ -28,7 +28,9 @@ export function parseSpec(text: string, file: string): Spec {
   }
   if (!Number.isInteger(raw.reps) || raw.reps < 1) throw new Error(`${file}: reps must be >= 1`);
   if (!Number.isFinite(raw.timeout_s) || raw.timeout_s <= 0) throw new Error(`${file}: timeout_s must be > 0`);
-  if (!raw.prompt && !raw.prompt_file) throw new Error(`${file}: prompt or prompt_file is required`);
+  if (!raw.prompt && !raw.prompt_file && !raw.fixture?.generator) {
+    throw new Error(`${file}: prompt, prompt_file, or fixture.generator is required`);
+  }
 
   const scoring = parseScoring(raw.scoring, file);
 
@@ -38,6 +40,7 @@ export function parseSpec(text: string, file: string): Spec {
       repo: String(raw.fixture.repo),
       setup: Array.isArray(raw.fixture.setup) ? raw.fixture.setup.map(String) : [],
       verify: Array.isArray(raw.fixture.verify) ? raw.fixture.verify.map(String) : [],
+      generator: raw.fixture.generator ? String(raw.fixture.generator) : undefined,
     };
   }
   if (raw.mode === "agentic" && scoring.kind === "programmatic" && !fixture?.verify?.length) {
