@@ -508,6 +508,23 @@ test("maze-keys: generates a solvable planning maze; verify accepts the referenc
   });
 });
 
+test("maze-3d: generates a solvable 3D maze; verify accepts the reference path, rejects a naive one", () => {
+  withFixture("maze-3d", (dir) => {
+    expect(genStatus(dir, 5)).toBe(0);
+    const refPath = JSON.parse(readFileSync(join(dir, "solution.json"), "utf8")).path as string;
+    expect(refPath.length).toBeGreaterThan(0);
+    writeFileSync(join(dir, "response.txt"), refPath);
+    expect(verifyStatus(dir)).toBe(0);
+    writeFileSync(join(dir, "response.txt"), "UUUU");
+    expect(verifyStatus(dir)).not.toBe(0);
+    rmSync(join(dir, "response.txt"));
+    expect(verifyStatus(dir)).not.toBe(0);
+    const first = readFileSync(join(dir, "maze.json"), "utf8");
+    expect(genStatus(dir, 6)).toBe(0);
+    expect(readFileSync(join(dir, "maze.json"), "utf8")).not.toBe(first);
+  });
+});
+
 test("arc-lite: generates an abstraction puzzle; verify accepts the solution grid, rejects a wrong one", () => {
   withFixture("arc-lite", (dir) => {
     expect(genStatus(dir, 5)).toBe(0);
