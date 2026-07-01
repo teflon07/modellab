@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "bun test",
-    "bench": "bun harness/src/cli.ts bench"
+    "bench": "bun harness/src/cli.ts bench",
+    "fanout": "bun scripts/fanout.ts"
   },
   "dependencies": {
     "yaml": "^2.5.0"
