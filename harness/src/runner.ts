@@ -74,18 +74,21 @@ export interface BuildCodexArgsOpts {
   sandbox: "read-only" | "workspace-write" | "danger-full-access";
   approval: "never" | "on-request" | "untrusted";
   ephemeral: boolean;
+  effort?: string;
 }
 
 export function buildCodexArgs(opts: BuildCodexArgsOpts): string[] {
-  const args = [
-    "-a", opts.approval,
+  const args = ["-a", opts.approval];
+  // Reasoning effort via a top-level config override (codex has no --effort flag).
+  if (opts.effort) args.push("-c", `model_reasoning_effort="${opts.effort}"`);
+  args.push(
     "exec",
     "--json",
     "-C", opts.cwd,
     "--skip-git-repo-check",
     "--sandbox", opts.spec.mode === "single_shot" ? "read-only" : opts.sandbox,
     "--model", opts.model,
-  ];
+  );
   if (opts.ephemeral) args.push("--ephemeral");
   args.push(opts.promptText);
   return args;
