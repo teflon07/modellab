@@ -1,0 +1,16 @@
+id: fix-multibug-py
+track: frontier
+mode: agentic
+prompt: |
+  budget.py has more than one bug: some parsed amounts and some totals come out
+  wrong. Fix parse_amount and net in budget.py so that `python3 verify.py`
+  passes. Do not edit verify.py.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 300
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/fix-multibug-py
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [debugging, agentic, python, headroom]

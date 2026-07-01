@@ -1,0 +1,17 @@
+id: financial-trap
+track: frontier
+mode: agentic
+prompt: |
+  Read financials.json. Compute the gross margin and operating margin, each as a
+  decimal fraction of revenue, on an operating basis. Read the note and handle
+  any non-operating items correctly. Write answer.json with keys "gross_margin"
+  and "operating_margin". Write only answer.json.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 5
+timeout_s: 240
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/financial-trap
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, finance, numeric, headroom]

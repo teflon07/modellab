@@ -144,19 +144,38 @@ house style, financial reasoning), scored automatically. The deterministic check
 gamed by reading the sandbox; `harness/test/fixtures.test.ts` proves each one fails
 on a wrong/missing output and passes only on a correct one.
 
-| ID | Track | Mode | Scoring | Represents |
+Specs come in two difficulty tiers, because "which model is cheapest" and "which
+model is capable enough" need different calibration:
+
+- **Cost-frontier tier** — calibrated so *most* models pass, so the signal is
+  cost/tokens/turns per success. Answers "what's the cheapest model that does my
+  routine work."
+- **Capability-ceiling tier** (tagged `headroom`) — calibrated with real headroom
+  so the frontier ladder actually splits. Each embeds a trap that a naive or
+  weaker approach fails: fixing only one of two coupled bugs, string-scanning a
+  status instead of reading the structured flag, dropping edge cases in a messy
+  extract, or ignoring a one-time item in a margin calc. Answers "where do I still
+  need the expensive model." The pass-rate CI only carries information when scores
+  land off the 0%/100% rails, which is what this tier is for.
+
+| ID | Track | Tier | Scoring | Represents |
 |---|---|---|---|---|
-| `extract-json` | local | single_shot | programmatic (smoke) | schema output smoke test |
-| `extract-records` | local | agentic | programmatic (rule-based) | messy-text extraction |
-| `summarize-changelog` | crossover | single_shot | judge | summarization quality |
-| `style-constraints` | crossover | agentic | programmatic (rule-based) | writing to house style (no em dashes, honorifics, American spelling) |
-| `fix-failing-test` | frontier | agentic | programmatic | TypeScript bug fix |
-| `fix-bug-py` | frontier | agentic | programmatic | Python bug fix |
-| `financial-metric` | frontier | agentic | programmatic (recomputed) | numeric/financial reasoning |
+| `extract-json` | local | cost-frontier | programmatic (smoke) | schema output smoke test |
+| `extract-records` | local | cost-frontier | programmatic (rule-based) | messy-text extraction |
+| `summarize-changelog` | crossover | cost-frontier | judge | summarization quality |
+| `style-constraints` | crossover | cost-frontier | programmatic (rule-based) | writing to house style (no em dashes, honorifics, American spelling) |
+| `fix-failing-test` | frontier | cost-frontier | programmatic | TypeScript bug fix |
+| `fix-bug-py` | frontier | cost-frontier | programmatic | Python bug fix (single off-by-one) |
+| `financial-metric` | frontier | cost-frontier | programmatic (recomputed) | numeric reasoning (formula given) |
+| `fix-multibug-py` | frontier | **headroom** | programmatic | two coupled bugs; a one-bug fix still fails |
+| `fix-status-detection` | frontier | **headroom** | programmatic | real memory-dream bug: honor the `ok` flag, not a string scan |
+| `financial-trap` | frontier | **headroom** | programmatic (recomputed) | exclude a one-time gain from operating margins |
+| `extract-messy` | crossover | **headroom** | programmatic (rule-based) | dedup, malformed-email drop, missing-city null, state stripping |
 
 To swap in your own real tasks, copy a fixture dir, write a `verify.py` that exits
 non-zero on any wrong output, add a matching self-test case to `fixtures.test.ts`,
-and drop a spec in `specs/<track>/`.
+and drop a spec in `specs/<track>/`. For a headroom task, make sure the self-test
+includes a "naive fix still fails" case so the trap is proven to bite.
 
 ---
 

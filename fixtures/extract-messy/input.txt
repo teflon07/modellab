@@ -1,0 +1,10 @@
+Q3 contact export (unclean):
+Maria Lopez, Tampa FL 33601, maria.lopez@example.com
+NOTE: the following were imported from the old CRM
+reach James Chen (Austin, TX) at jchen@example.com
+Priya Nair | Miami | priya@example.com
+duplicate row -> James Chen, Austin, jchen@example.com
+Tomas Garcia, , tomas.garcia@example.com
+Bad Row, Denver, not-an-email
+Sam O'Neil, Seattle WA, sam.oneil@example.co.uk
+-- end of export --

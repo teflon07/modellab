@@ -1,0 +1,26 @@
+id: extract-messy
+track: crossover
+mode: agentic
+prompt: |
+  Read input.txt and produce a cleaned JSON array in result.json. Rules:
+    - A record is any line that contains an email address; ignore all other lines
+      (headers, notes, separators).
+    - Each record is an object with exactly these keys: name, city, email.
+    - name is the person's full name only (strip surrounding words like "reach"
+      or "duplicate row ->").
+    - city is the city name only, with no state code or ZIP. If no city is given,
+      use null.
+    - Deduplicate by email (keep one record per address).
+    - Drop any record whose email is malformed (it must contain "@" and a "."
+      after the "@").
+    - Sort the array by name.
+  Write only result.json.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-haiku-4-5", "ollama/qwen3:1.7b"]
+reps: 3
+timeout_s: 240
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/extract-messy
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [extraction, json, headroom]
