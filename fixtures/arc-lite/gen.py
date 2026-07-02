@@ -7,8 +7,11 @@ Writes prompt.txt and solution.json (the correct test output, for verify only).
 Difficulty dials (env): ARC_N grid side (default 4), ARC_COLORS (default 4,
 color 0 = background), ARC_EXAMPLES (default 3; fewer = harder),
 ARC_COMPOSE=1 -> the hidden rule is a composition of two transforms (harder to
-induce).
+induce). Compositions that collapse back to a single base transform (e.g.
+rot90∘rot90=rot180, flip∘flip=identity) are rejected, so every composed puzzle
+is genuinely two-step.
 """
+import itertools
 import json
 import os
 import random
@@ -94,10 +97,44 @@ def covers_all_colors(grids):
     return all(c in seen for c in range(1, C))
 
 
+def single_transform_space():
+    """Every rule the base (single-transform) task can already produce: identity,
+    the static geometric transforms, all recolor permutations, all shifts. A
+    composition equal to any of these is not genuinely two-step."""
+    cands = [lambda g: [row[:] for row in g]]  # identity
+    cands += [rot90, rot180, rot270, flip_h, flip_v, transpose, gravity]
+    nz = list(range(1, C))
+    for perm in itertools.permutations(nz):
+        m = {0: 0}
+        m.update(dict(zip(nz, perm)))
+        cands.append((lambda mm: (lambda g: [[mm[v] for v in row] for row in g]))(m))
+    for dr, dc in [(0, 1), (1, 0), (0, -1), (-1, 0), (1, 1), (-1, -1)]:
+        cands.append((lambda a, b: (lambda g: [[g[(r - a) % N][(c - b) % N] for c in range(N)] for r in range(N)]))(dr, dc))
+    return cands
+
+
+_SINGLE = single_transform_space()
+# Independent RNG so the degeneracy probe never perturbs the main puzzle stream.
+_probe_rng = random.Random(SEED * 104729 + 42)
+_PROBES = [[[_probe_rng.randrange(C) for _ in range(N)] for _ in range(N)] for _ in range(8)]
+
+
+def is_degenerate(rule):
+    """True if `rule` behaves like some single base transform on all probe grids."""
+    return any(all(rule(g) == cf(g) for g in _PROBES) for cf in _SINGLE)
+
+
 def build():
     if COMPOSE:
-        (n1, f1), (n2, f2) = pick_rule(), pick_rule()
-        rule = lambda g: f2(f1(g))
+        rule = None
+        for _ in range(500):
+            (n1, f1), (n2, f2) = pick_rule(), pick_rule()
+            cand = lambda g, f1=f1, f2=f2: f2(f1(g))
+            if not is_degenerate(cand):
+                rule = cand
+                break
+        if rule is None:
+            raise SystemExit("generator: could not build a non-degenerate composition")
     else:
         _, rule = pick_rule()
     # Example inputs; ensure the union covers every non-background color so any
