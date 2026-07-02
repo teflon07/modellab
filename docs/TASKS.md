@@ -148,7 +148,7 @@ collapse into the easy tier's operation set.**
 
 | Faculty | Does it separate the frontier? | Notes |
 |---|---|---|
-| Execution (long-horizon) | **Yes, at scale** | 96-move maze: Fable 100 / Opus 80 / Sonnet 0 |
+| Execution (long-horizon) | **Yes, at scale** | 96-move maze: Fable 100 / GPT-5.5 90 / Opus 80 / Sonnet 0 |
 | Deduction | **Only when search-required** | easy & Zebra-scale saturate (~100%); search-required tier: Fable/Opus 100 > GPT-5.5/GLM 90 > Sonnet 80 > Haiku 50 |
 | Abstraction | **Only when composed** | single transform saturates (all 100%); 2-composition: Fable 100 > GPT-5.5/Opus 80 > Sonnet 70 > Haiku 10 |
 | Planning | **Yes** | maze-keys: Fable/Sonnet 100 > Opus 90 > GPT-5.5 40 > Haiku 20 |
@@ -161,9 +161,9 @@ Two headline reads:
   frontier ordering.
 - **The profile, not a scalar, is the truth.** **Fable 5 is the all-rounder** —
   100% or top on every faculty, at the lowest token cost. **GPT-5.5 is spiky**:
-  strong on 3D spatial execution (100% at 15×6, where Opus is 60%) but weak on
-  planning (40% on maze-keys) and mid on abstraction (80%) — a jagged profile a
-  single score would hide. **Sonnet 5** is the frontier's weakest when pushed on
+  strong on spatial execution (100% at 15×6 3D where Opus is 60%; 90% at the
+  96-move maze, second only to Fable) but weak on planning (40% on maze-keys) and
+  mid on abstraction (80%) — a jagged profile a single score would hide. **Sonnet 5** is the frontier's weakest when pushed on
   execution/deduction (0% at 96-move, 80% search-required) yet aced maze-keys
   planning (100%). **Opus 4.8** is robust but not dominant (degraded first at
   15×6). **Haiku** trails on execution/planning but is a competent deducer. The
@@ -190,14 +190,15 @@ separates only as the path grows and per-step error compounds.
 | Fable 5 | 100% · $0.09 | 100% · $0.25 | **100% · $0.59** |
 | Opus 4.8 | 100% · $0.11 | 100% · $0.33 | **80% · $0.61** |
 | Sonnet 5 | 100% · $0.08 | 100% · $0.20 | **0% · —** |
-| GPT-5.5 | 100% · $0.04 | 80% · $0.12 | not run |
+| GPT-5.5 | 100% · $0.04 | 80% · $0.12 | 90% · — |
 | GLM 5.2 | 60% · $0.02 | not run | not run |
 | Haiku 4.5 | 10% · $0.35 | not run | not run |
 
 At 44 moves every frontier model is perfect (GLM/Haiku already trail); at 72 the
-first crack shows (GPT-5.5 → 80%); at 96 only Fable holds 100%, Opus drops to 80%,
-and Sonnet collapses to 0%. Gaps marked "not run" are open cells (GPT-5.5 at 96;
-GLM/Haiku beyond 44) — cheap to fill.
+first crack shows (GPT-5.5 → 80%); at 96 Fable holds 100%, GPT-5.5 90%, Opus drops
+to 80%, and Sonnet collapses to 0%. GPT-5.5 runs via Codex (subscription-billed,
+so its est. $/success is not list-priced). Gaps marked "not run" are open cells
+(GLM/Haiku beyond 44) — cheap to fill.
 
 **Deduction — logic-grid-hard (search-required 5×5), 10 reps**
 
