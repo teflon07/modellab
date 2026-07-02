@@ -194,9 +194,15 @@ they measure generalization). Full detail in [`docs/TASKS.md`](docs/TASKS.md).
 | `logic-grid` / `-5` / `-hard` | deduction | Zebra-style constraint solving (hard tier requires search) |
 | `arc-lite` / `-hard` | abstraction | infer a hidden grid transform from examples, then apply it |
 
-Headline finding: long-horizon **execution** separates the frontier (Fable 100% /
-Opus 80% / Sonnet 0% at a 96-move maze), while **deduction** saturates (all ~100%
-even at Zebra scale). The suite exists to find *where* models differ, per faculty.
+Headline finding: **each faculty saturates on easy instances and only separates
+when you push the right lever** — path length for execution/3D, required search
+depth for deduction, rule composition for abstraction. Pushed there, a consistent
+but *jagged* profile emerges: **Fable 5** is the all-rounder (top or 100% on every
+faculty, cheapest tokens); **GPT-5.5** is spiky (strong on 3D spatial, weak on
+planning); **Sonnet 5** is weakest on long-horizon execution (0% at a 96-move
+maze) yet aces planning; **Opus 4.8** is robust but not dominant. The suite exists
+to find *where* models differ, per faculty — a single leaderboard rank hides this.
+Full per-faculty results in [`docs/TASKS.md`](docs/TASKS.md).
 
 To swap in your own real tasks, copy a fixture dir, write a `verify.py` that exits
 non-zero on any wrong output, add a matching self-test case to `fixtures.test.ts`,

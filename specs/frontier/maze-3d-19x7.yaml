@@ -1,0 +1,16 @@
+id: maze-3d-19x7
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-fable-5", "anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5"]
+reps: 10
+timeout_s: 600
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-3d
+  # Bounds sweep, top rung: 7 stacked 19x19 levels. Median solution ~132 moves
+  # (max ~158) across ~2.6k grid chars of input; a brutal long-horizon execution
+  # test meant to find where the strongest models finally break.
+  generator: "MAZE3D_N=19 MAZE3D_L=7 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, spatial, execution, generated, hard-ceiling]
