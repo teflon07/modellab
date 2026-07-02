@@ -70,6 +70,19 @@ moves the models spread hard — **Fable 5 100%, Opus 4.8 80%, Sonnet 5 0%**
 (Sonnet's per-step reliability doesn't survive ~100 compounding steps). This is
 the faculty that predicts long-horizon *agentic* reliability.
 
+**3D finding (`maze-3d`, 2026-07):** the baseline (3 stacked 9×9 levels, ~22-move
+paths) saturates the top tier — **Fable 100%, Opus 100%, Sonnet 80%, GPT-5.5 50%,
+Haiku 10%**. Note the existing `maze-3d-hard` (4×11×11) is *not* meaningfully
+harder: its median path is ~21 moves, essentially the baseline — its only added
+load is parsing 4 grids. The real lever is path length, so we added graduated
+rungs `maze-3d-15x6` (6×15×15, ~67-move) and `maze-3d-19x7` (7×19×19, ~132-move).
+At **15×6: Fable 90%, Sonnet 80%, Opus 60%, GPT-5.5 100%** (Anthropic run
+single-shot via pi; GPT via Codex/ChatGPT-OAuth, unthrottled). The **19×7** rung
+is being re-run serially — the first attempt ran three Anthropic models
+concurrently and self-inflicted HTTP 429s (see Methodology), invalidating those
+cells; GPT-5.5 (separate rate bucket) hit 100% there. *19×7 Anthropic numbers
+pending the serial re-run.*
+
 ### Planning — construct an ordering under dependencies
 | Task | What it tests | Dials |
 |---|---|---|
@@ -78,6 +91,13 @@ the faculty that predicts long-horizon *agentic* reliability.
 **Scoring:** walk the path tracking collected keys; entering a locked door without
 its key fails. The generator guarantees the maze is solvable *with* keys and
 unsolvable with doors as walls, so keys genuinely force planning.
+
+**Finding (`maze-keys`, 11×11 / 1 key, 2026-07):** planning separates the field
+cleanly — **Fable 100%, Sonnet 100%, Opus 90%, GPT-5.5 40%, Haiku 20%.** The one
+Opus miss was an off-by-one column wall-collision (correct plan — it detoured for
+the key first — but a cell-counting slip mid-path), i.e. an *execution* error on a
+correct plan, not a planning failure. GPT-5.5 and Haiku drop hard here, in
+contrast to their relative strength on 3D execution.
 
 ### Deduction — infer what must be true from constraints
 | Task | What it tests | Dials |
@@ -106,6 +126,22 @@ once the task is pushed.
 **Scoring:** parse the emitted output grid, compare exactly to the computed
 answer. `arc-lite-hard` composes two transforms (harder to induce).
 
+**Finding (2026-07):** the single-transform baseline `arc-lite` (4×4) is fully
+saturated — **all five real models 100%** (GLM excluded, see caveats) — so it
+gives no signal. Composition is the lever: `arc-lite-hard` separates the field to
+**Fable 100%, GPT-5.5 80%, Opus 80%, Sonnet 70%, Haiku 10%**, with a ~3.4×
+token jump (Fable 1.3K → 4.4K) confirming real induction rather than pattern
+match. Fable is the lone model still at 100%.
+
+*Fixture bug fixed to make this real (commit `1ae362b`):* `arc-lite-hard` picked
+two transforms independently and composed them, but ~42% of pairs collapsed back
+into a single base transform (rot90∘rot90=rot180, flip∘flip=identity), 7.4% all
+the way to identity — i.e. nearly half the "hard" reps were secretly the easy
+tier. The generator now rejects any composition functionally equal to a single
+base transform, so every composed puzzle is genuinely two-step. **Lesson: when a
+hard tier is built by composing operations, verify the composition doesn't
+collapse into the easy tier's operation set.**
+
 ---
 
 ## The intelligence picture so far
@@ -114,20 +150,25 @@ answer. `arc-lite-hard` composes two transforms (harder to induce).
 |---|---|---|
 | Execution (long-horizon) | **Yes, at scale** | 96-move maze: Fable 100 / Opus 80 / Sonnet 0 |
 | Deduction | **Only when search-required** | easy & Zebra-scale saturate (~100%); search-required tier: Fable/Opus 100 > GPT-5.5/GLM 90 > Sonnet 80 > Haiku 50 |
-| Abstraction | *pending run* | expected to separate most (frontier weakest here) |
-| Planning | *pending run* | |
-| 3D representation | *pending run* | |
+| Abstraction | **Only when composed** | single transform saturates (all 100%); 2-composition: Fable 100 > GPT-5.5/Opus 80 > Sonnet 70 > Haiku 10 |
+| Planning | **Yes** | maze-keys: Fable/Sonnet 100 > Opus 90 > GPT-5.5 40 > Haiku 20 |
+| 3D representation | **Yes, with path length** | 9×9×3 saturates top tier (Fable/Opus 100); 15×6 (~67-move): Fable 90 > Sonnet 80 > Opus 60, GPT-5.5 100; 19×7 re-run pending |
 
 Two headline reads:
 - **Difficulty must be calibrated per faculty.** Every faculty saturates on easy
   instances; the signal appears only when you push the *right* lever — path length
   for execution, required search depth for deduction. Both then reveal the same
   frontier ordering.
-- **The profile, not a scalar, is the truth**, and it's consistent across hard
-  axes: **Sonnet 5 is the weakest of the frontier when pushed** (0% at 96-move
-  execution, 80% on search-required deduction), while **Fable and Opus are the
-  robust pair** on both and GPT-5.5 sits between. Haiku trails on execution but is
-  a competent deducer.
+- **The profile, not a scalar, is the truth.** **Fable 5 is the all-rounder** —
+  100% or top on every faculty, at the lowest token cost. **GPT-5.5 is spiky**:
+  strong on 3D spatial execution (100% at 15×6, where Opus is 60%) but weak on
+  planning (40% on maze-keys) and mid on abstraction (80%) — a jagged profile a
+  single score would hide. **Sonnet 5** is the frontier's weakest when pushed on
+  execution/deduction (0% at 96-move, 80% search-required) yet aced maze-keys
+  planning (100%). **Opus 4.8** is robust but not dominant (degraded first at
+  15×6). **Haiku** trails on execution/planning but is a competent deducer. The
+  takeaway: pick the model by the *faculty* the workload stresses, not by a
+  leaderboard rank.
 
 ---
 
@@ -174,6 +215,46 @@ GLM/Haiku beyond 44) — cheap to fill.
 among the perfect scorers Fable ($0.24) edges Opus ($0.26). So "best" depends on
 the axis: **capability → Fable/Opus; value → GLM (deduction), Fable (execution).**
 
+**Abstraction — arc-lite, 10 reps (2026-07)**
+
+| Model | arc-lite (single) | arc-lite-hard (2-comp) | Tokens (med, hard) |
+|---|---|---|---|
+| Fable 5 | 100% | **100%** | 4.4K |
+| GPT-5.5 | 100% | 80% | 21.7K |
+| Opus 4.8 | 100% | 80% | 5.5K |
+| Sonnet 5 | 100% | 70% | 6.6K |
+| Haiku 4.5 | 100% | 10% | 11.9K |
+
+Single-transform saturates; composition separates. Fable is the only model that
+holds 100% once the rule is two-step.
+
+**Planning — maze-keys (11×11, 1 key), 10 reps (2026-07)**
+
+| Model | Pass | Tokens (med) |
+|---|---|---|
+| Fable 5 | 100% | 2.9K |
+| Sonnet 5 | 100% | 5.4K |
+| Opus 4.8 | 90% | 5.8K |
+| GPT-5.5 | 40% | 18.7K |
+| Haiku 4.5 | 20% | 9.0K |
+
+**3D execution — maze-3d across sizes, 10 reps (2026-07)**
+
+Path length is the dial (as with maze-solve). The `-hard` (4×11×11) tier is
+omitted — its ~21-move path barely exceeds the baseline.
+
+| Model | 9×9×3 (~22-move) | 15×6 (~67-move) | 19×7 (~132-move) |
+|---|---|---|---|
+| Fable 5 | 100% | 90% | *re-run pending* |
+| Opus 4.8 | 100% | 60% | *re-run pending* |
+| Sonnet 5 | 80% | 80% | *re-run pending* |
+| GPT-5.5 | 50% | 100% | 100% |
+| Haiku 4.5 | 10% | not run | not run |
+
+GPT-5.5's 3D strength is the standout (100% at both hard rungs, unthrottled via
+Codex). Anthropic 19×7 cells are pending a serial re-run after the concurrent
+first attempt self-inflicted rate-limit errors (below).
+
 ---
 
 ## Methodology & caveats
@@ -188,5 +269,22 @@ the axis: **capability → Fable/Opus; value → GLM (deduction), Fable (executi
   per-step-reliability ^ steps), which is why only long mazes separate models.
 - **n = 10** per cell; pass rates carry a 95% Wilson interval. Overlapping
   intervals mean "tied," not "ranked."
-- **Cross-harness / hidden reasoning tokens:** GPT-5.5 runs via a different path
-  and its reasoning tokens may not be fully counted, so its cost is a floor.
+- **Cross-harness / hidden reasoning tokens:** GPT-5.5 runs via the Codex
+  runner (ChatGPT-OAuth) — there is no single-shot pi path for it (the
+  `openai-codex` provider only functions through Codex; default-config yields an
+  empty no-op). On these single_shot specs Codex answers in **one turn** (verified:
+  a direct move-string, no tool calls), so pass rates *are* comparable to the pi
+  single-shot Anthropic runs. What is **not** comparable is cost/tokens (Codex
+  reports cost=0 and counts reasoning differently, e.g. 79K vs Fable's 16K at
+  15×6) — compare GPT-5.5 on pass rate and wall time, not cost. GPT also runs on a
+  separate rate bucket, so it never contends with the Anthropic 429s below.
+- **Rate-limit contamination (lesson, 2026-07):** the fan-out runs API models
+  **concurrently**. On heavy specs (maze-3d-19x7, 35–55K tokens/rep) three
+  simultaneous Anthropic streams exceeded the account tokens-per-minute limit;
+  requests returned HTTP 429, exhausted their 3 retries, and recorded as empty
+  0-token runs — which *look identical to a capability failure* (0% pass). This
+  silently invalidated the 19×7 sweep (Opus/Sonnet "0%" was pure throttling, not
+  reasoning). **Fix: run heavy specs one model at a time** (or cap fan-out
+  concurrency). **Detection: a 0-token, ~sub-20s "failure" with `stopReason:
+  error` / `429` in the transcript is an infra artifact, not a model result** —
+  always check the transcript before trusting a 0%.

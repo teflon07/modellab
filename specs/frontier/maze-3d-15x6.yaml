@@ -1,0 +1,16 @@
+id: maze-3d-15x6
+track: frontier
+mode: single_shot
+models: ["anthropic/claude-fable-5", "anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5"]
+reps: 10
+timeout_s: 600
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-3d
+  # Bounds sweep, mid rung: 6 stacked 15x15 levels. Median solution ~67 moves
+  # (max ~130), so this stresses long-horizon cross-level tracking far past the
+  # 9x9x3 baseline and the 11x11x4 "hard" tier (both ~21-22 move paths).
+  generator: "MAZE3D_N=15 MAZE3D_L=6 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, spatial, execution, generated, hard-ceiling]
