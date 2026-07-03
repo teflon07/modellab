@@ -187,7 +187,7 @@ async function main(): Promise<void> {
       if (metrics) {
         const priced = priceOverride(cfg.prices, p.model, metrics);
         if (priced != null) metrics.costTotal = priced;
-        results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score });
+        results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score, timedOut: run.timedOut });
         outputs.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, output: run.stdout });
       } else {
         console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);

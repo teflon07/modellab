@@ -47,17 +47,26 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
   const out: CellSummary[] = [];
   for (const [key, rs] of groups) {
     const [specId, model] = key.split(" ") as [string, string];
-    const passes = rs.filter((r) => r.pass);
-    const sumCost = rs.reduce((a, r) => a + r.costTotal, 0);
-    const sumTok = rs.reduce((a, r) => a + r.totalTokens, 0);
-    const num = (f: (r: RunResult) => number) => rs.map(f);
+    // A timed-out rep was killed at the ceiling: it is "no result", not a
+    // failure. Exclude it from the pass-rate denominator and report it
+    // separately, so a too-short timeout can't masquerade as low capability.
+    const completed = rs.filter((r) => !r.timedOut);
+    const timeouts = rs.length - completed.length;
+    const passes = completed.filter((r) => r.pass);
+    const sumCost = completed.reduce((a, r) => a + r.costTotal, 0);
+    const sumTok = completed.reduce((a, r) => a + r.totalTokens, 0);
+    // Distributions over COMPLETED reps only, so timed-out (0-token, ceiling
+    // wall) runs don't poison the medians — tokens/wall reflect real runs.
+    const num = (f: (r: RunResult) => number) => completed.map(f);
     out.push({
       track: trackBySpec.get(specId) ?? "frontier",
       specId,
       model,
       n: rs.length,
-      passRate: rs.length === 0 ? 0 : passes.length / rs.length,
-      passRateCI: wilsonInterval(passes.length, rs.length),
+      completed: completed.length,
+      timeouts,
+      passRate: completed.length === 0 ? 0 : passes.length / completed.length,
+      passRateCI: wilsonInterval(passes.length, completed.length),
       tokens: distribution(num((r) => r.totalTokens)),
       cost: distribution(num((r) => r.costTotal)),
       cacheHitRatio: distribution(num(cacheHitRatio)),
@@ -67,7 +76,7 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
       ttftMs: distribution(num((r) => r.ttftMs ?? 0)),
       outputTps: distribution(num((r) => r.outputTps ?? 0)),
       peakContext: distribution(num((r) => r.peakContext)),
-      // Amortized cost/tokens to obtain ONE success: total spend over ALL runs
+      // Amortized cost/tokens to obtain ONE success: spend over COMPLETED runs
       // (failed + passed) divided by the number of passing runs. null if none passed.
       costPerSuccess: passes.length === 0 ? null : sumCost / passes.length,
       tokensPerSuccess: passes.length === 0 ? null : sumTok / passes.length,

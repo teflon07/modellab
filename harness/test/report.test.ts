@@ -5,7 +5,7 @@ import type { CellSummary } from "../src/types";
 const d = (median: number, min: number, max: number) => ({ median, min, max, stdev: 0, cv: 0 });
 
 const cells: CellSummary[] = [{
-  track: "frontier", specId: "s1", model: "m1", n: 2, passRate: 1,
+  track: "frontier", specId: "s1", model: "m1", n: 2, completed: 2, timeouts: 0, passRate: 1,
   passRateCI: { low: 0.34, high: 1 },
   tokens: d(150, 100, 200),
   cost: { median: 0.03, min: 0.02, max: 0.04, stdev: 0.01, cv: 0.33 },
