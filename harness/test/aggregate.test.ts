@@ -72,6 +72,41 @@ test("summarize groups by (track, spec, model) with derived metrics", () => {
   expect(cell.cost.cv).toBeGreaterThan(0);
 });
 
+test("timed-out reps are excluded from the pass rate, not scored as failures", () => {
+  const specs: Spec[] = [{
+    id: "s1", track: "frontier", mode: "single_shot", prompt: "x",
+    models: ["m1"], reps: 3, timeout_s: 60, scoring: { kind: "programmatic" }, tags: [],
+  }];
+  const results = [
+    mkResult({ rep: 1, totalTokens: 100, pass: true }),
+    mkResult({ rep: 2, totalTokens: 100, pass: true }),
+    // killed at the ceiling: 0 tokens, timedOut — must NOT count as a failure
+    mkResult({ rep: 3, pass: false, timedOut: true, totalTokens: 0, costTotal: 0, wallClockMs: 60000 }),
+  ];
+  const cell = summarize(results, specs)[0]!;
+  expect(cell.n).toBe(3);
+  expect(cell.completed).toBe(2);
+  expect(cell.timeouts).toBe(1);
+  expect(cell.passRate).toBe(1); // 2/2 completed passed; the timeout is excluded, not a 2/3 fail
+  // medians reflect completed reps only — the 0-token timeout does not drag them down
+  expect(cell.tokens.median).toBe(100);
+});
+
+test("a cell with only timeouts reports 0 completed, not a 0% pass rate to read as failure", () => {
+  const specs: Spec[] = [{
+    id: "s1", track: "frontier", mode: "single_shot", prompt: "x",
+    models: ["m1"], reps: 2, timeout_s: 60, scoring: { kind: "programmatic" }, tags: [],
+  }];
+  const results = [
+    mkResult({ rep: 1, pass: false, timedOut: true, totalTokens: 0 }),
+    mkResult({ rep: 2, pass: false, timedOut: true, totalTokens: 0 }),
+  ];
+  const cell = summarize(results, specs)[0]!;
+  expect(cell.completed).toBe(0);
+  expect(cell.timeouts).toBe(2);
+  expect(cell.costPerSuccess).toBeNull();
+});
+
 test("costPerSuccess is null when nothing passed", () => {
   const specs: Spec[] = [{
     id: "s1", track: "local", mode: "single_shot", prompt: "x",

@@ -68,6 +68,9 @@ export interface RunMetrics extends CollectedMetrics {
 export interface RunResult extends RunMetrics {
   pass: boolean;
   score: number | null;
+  /** true if the rep was killed at the timeout ceiling. Such a rep is "no
+   *  result", not a capability failure: it is excluded from the pass rate. */
+  timedOut?: boolean;
 }
 
 export interface Distribution {
@@ -90,7 +93,13 @@ export interface CellSummary {
   track: Track;
   specId: string;
   model: string;
+  /** total reps attempted (completed + timeouts) */
   n: number;
+  /** reps that finished under the timeout — the pass-rate denominator */
+  completed: number;
+  /** reps killed at the timeout ceiling — excluded from the pass rate, never counted as failures */
+  timeouts: number;
+  /** passes / completed (NOT / n): a timeout is "no result", never a failure */
   passRate: number;
   /** 95% Wilson interval on passRate — the reliability band, not a single-shot point. */
   passRateCI: Interval;
