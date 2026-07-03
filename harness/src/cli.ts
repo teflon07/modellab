@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
-import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, appendFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, priceOverride } from "./config";
@@ -101,9 +101,21 @@ async function main(): Promise<void> {
   const env = cfg.runner === "pi" ? obsEnv : {};
 
   const results: RunResult[] = [];
-  // Raw model outputs, kept alongside metrics so a pass/fail can be audited after
-  // the fact (results.json only carries metrics + the verdict, not the text).
-  const outputs: { runId: string; specId: string; model: string; rep: number; output: string }[] = [];
+  const meta = { runId, generatedAt: new Date().toISOString(), piVersion: cfg.pi_version };
+  const outDir = resolve(root, "results", runId);
+  mkdirSync(outDir, { recursive: true });
+  const outputsPath = resolve(outDir, "outputs.jsonl");
+  writeFileSync(outputsPath, "");
+  // Checkpoint after every rep so a run is crash-safe and readable mid-flight: a
+  // killed run keeps every completed rep, and a batched run shows live progress
+  // instead of nothing-until-the-end. Metrics/verdict go to results.*; the raw
+  // model text is appended per rep to outputs.jsonl.
+  const checkpoint = () => {
+    const summaries = summarize(results, specs.map((s) => s.spec));
+    writeFileSync(resolve(outDir, "report.md"), renderMarkdown(summaries, meta));
+    writeFileSync(resolve(outDir, "results.csv"), renderCsv(summaries));
+    writeFileSync(resolve(outDir, "results.json"), renderJson(summaries, results, meta));
+  };
   for (const p of plan) {
     const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
     let sandbox: Awaited<ReturnType<typeof provisionSandbox>> | null = null;
@@ -197,7 +209,8 @@ async function main(): Promise<void> {
         const priced = priceOverride(cfg.prices, p.model, metrics);
         if (priced != null) metrics.costTotal = priced;
         results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score, timedOut: run.timedOut });
-        outputs.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, output: run.stdout });
+        appendFileSync(outputsPath, JSON.stringify({ runId, specId: p.spec.id, model: p.model, rep: p.rep, output: run.stdout }) + "\n");
+        checkpoint();
       } else {
         console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
       }
@@ -208,14 +221,7 @@ async function main(): Promise<void> {
     }
   }
 
-  const summaries = summarize(results, specs.map((s) => s.spec));
-  const meta = { runId, generatedAt: new Date().toISOString(), piVersion: cfg.pi_version };
-  const outDir = resolve(root, "results", runId);
-  mkdirSync(outDir, { recursive: true });
-  writeFileSync(resolve(outDir, "report.md"), renderMarkdown(summaries, meta));
-  writeFileSync(resolve(outDir, "results.csv"), renderCsv(summaries));
-  writeFileSync(resolve(outDir, "results.json"), renderJson(summaries, results, meta));
-  writeFileSync(resolve(outDir, "outputs.jsonl"), outputs.map((o) => JSON.stringify(o)).join("\n") + "\n");
+  checkpoint();
   console.error(`[done] wrote results to ${outDir}`);
 }
 
