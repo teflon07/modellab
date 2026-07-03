@@ -26,12 +26,16 @@ export function planRuns(
   specs: Array<{ path: string; spec: Spec }>,
   modelsOverride?: string[],
   repsOverride?: number,
+  repOffset = 0,
 ): PlannedRun[] {
   const plan: PlannedRun[] = [];
   for (const { path, spec } of specs) {
     const reps = repsOverride && repsOverride > 0 ? repsOverride : spec.reps;
     for (const model of modelsOverride?.length ? modelsOverride : spec.models) {
-      for (let rep = 1; rep <= reps; rep++) {
+      // rep drives the generator seed (MODELLAB_SEED), so running reps one-at-a-time
+      // in separate invocations needs a distinct offset each time — otherwise every
+      // `--reps 1` run reuses rep=1 and measures the SAME instance, not generalization.
+      for (let rep = 1 + repOffset; rep <= reps + repOffset; rep++) {
         plan.push({ path, spec, model, rep });
       }
     }
@@ -47,10 +51,10 @@ function repoRoot(): string {
 async function main(): Promise<void> {
   const { positionals, values } = parseArgs({
     allowPositionals: true,
-    options: { "run-id": { type: "string" }, config: { type: "string" }, models: { type: "string" }, specs: { type: "string" }, reps: { type: "string" } },
+    options: { "run-id": { type: "string" }, config: { type: "string" }, models: { type: "string" }, specs: { type: "string" }, reps: { type: "string" }, "rep-offset": { type: "string" } },
   });
   if (positionals[0] !== "bench") {
-    console.error("usage: modellab bench [--run-id <id>] [--config <path>] [--models <comma-separated-models>] [--specs <comma-separated-spec-ids>] [--reps <n>]");
+    console.error("usage: modellab bench [--run-id <id>] [--config <path>] [--models <comma-separated-models>] [--specs <comma-separated-spec-ids>] [--reps <n>] [--rep-offset <n>]");
     process.exit(2);
   }
   const root = repoRoot();
@@ -83,7 +87,12 @@ async function main(): Promise<void> {
     console.error(`invalid --reps: ${values.reps}`);
     process.exit(2);
   }
-  const plan = planRuns(specs, modelsOverride, repsOverride);
+  const repOffset = values["rep-offset"] ? parseInt(values["rep-offset"], 10) : 0;
+  if (values["rep-offset"] && (Number.isNaN(repOffset) || repOffset < 0)) {
+    console.error(`invalid --rep-offset: ${values["rep-offset"]}`);
+    process.exit(2);
+  }
+  const plan = planRuns(specs, modelsOverride, repsOverride, repOffset);
   const obsEnv = {
     OBS_ENABLE: "true",
     OBS_SERVER_URL: cfg.obs.server_url,
