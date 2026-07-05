@@ -9,9 +9,9 @@ OUT="${1:-$C/out}"
 mkdir -p "$OUT"
 
 python3 "$DIR/render_faculty.py" --maze "$C/planning.txt" --out "$OUT/planning-passfail.gif" \
-  --pass "RRRRRRRRDDLLLLLLDDLLDDDDRRRRRRRR" --auto-fail \
-  --pass-label "PASS  ·  Fable 5  ·  key then door" \
-  --fail-label "FAIL  ·  straight to the locked door"
+  --pass "DDDDRRRRRRRRUUUULLDDLLLLUDRRRRUURRDDDDDDDD" --auto-fail \
+  --pass-label "PASS  ·  Fable 5  ·  detours for the key, then through" \
+  --fail-label "FAIL  ·  beelines to the door, no key"
 
 python3 "$DIR/render_faculty.py" --maze "$C/execution.txt" --out "$OUT/execution-passfail.gif" --cell 22 \
   --pass "RRDDLLDDDDRRDDDDDDRRDDRRRRUUUUUURRRRUULLLLLLUUUULLUURRRRRRDDRRDDRRUURRDDRRDDDDDDLLDDDDLLDDRRRRDD" \
