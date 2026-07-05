@@ -1,7 +1,0 @@
-track,spec,model,n,pass_rate,tokens_med,tokens_min,tokens_max,cost_med,cost_per_success,tokens_per_success,cache_hit_med,turns_med,tool_calls_med,wall_ms_med,ttft_ms_med,tps_med,peak_ctx_med
-local,extract-json,anthropic/claude-fable-5,3,1.0000,711,711,722,0.002495,0.004754,714.6666666666666,0.9985,1,0,4548,4109,57,686
-local,extract-json,anthropic/claude-opus-4-8,3,1.0000,711,711,711,0.004055,0.004055,711,0.0000,1,0,1729,1423,74,686
-local,extract-json,anthropic/claude-sonnet-4-6,3,1.0000,511,511,511,0.001785,0.001785,511,0.0000,1,0,1589,1239,67,490
-local,extract-json,anthropic/claude-haiku-4-5,3,1.0000,627,625,656,0.001059,0.001104,636,0.0000,1,0,2392,1762,165,519
-local,extract-json,anthropic/claude-haiku-4-5-20251001,3,1.0000,622,621,638,0.001034,0.001059,627,0.0000,1,0,1354,682,154,519
-local,extract-json,ollama/qwen3:1.7b,3,1.0000,292,214,321,0.000000,0.000000,275.6666666666667,0.0000,1,0,5791,495,41,45
