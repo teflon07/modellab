@@ -1,0 +1,16 @@
+id: maze-3d-19x7-probe
+track: frontier
+mode: single_shot
+# Single-rep probe of the ~132-move tier with a generous ceiling, so a run that
+# hits the cap is a genuine non-convergence (loop), not a cut-off mid-reasoning.
+# Run one rep at a time via --reps 1 and inspect each before the next.
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-5"]
+reps: 1
+timeout_s: 1800
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/maze-3d
+  generator: "MAZE3D_N=19 MAZE3D_L=7 python3 gen.py"
+  setup: []
+  verify: ["python3 verify.py"]
+tags: [reasoning, spatial, execution, generated, hard-ceiling, probe]

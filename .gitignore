@@ -2,3 +2,7 @@ node_modules/
 .sandboxes/
 *.log
 scripts/cards/out/
+.DS_Store
+__pycache__/
+results/
+!benchmarks/

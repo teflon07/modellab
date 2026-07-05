@@ -1,0 +1,9 @@
+runner: codex
+codex:
+  sandbox: workspace-write
+  approval: never
+  ephemeral: true
+  judge_model: gpt-5.5
+  effort: low
+pi_version: "codex-cli 0.135.0-alpha.1 (low-effort)"
+prices: {}
