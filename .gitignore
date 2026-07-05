@@ -1,3 +1,4 @@
 node_modules/
 .sandboxes/
 *.log
+scripts/cards/out/
