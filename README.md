@@ -1,3 +1,9 @@
+<p align="center">
+  <img src="assets/logo.png" alt="modellab logo" width="180" height="180" />
+</p>
+
+<p align="center"><em>Which model actually finishes? Per-faculty LLM benchmarks with reproducible cost, reliability bands, and no cherry-picked numbers.</em></p>
+
 # modellab
 
 A benchmark lab that measures frontier and local LLMs on real-world tasks and
