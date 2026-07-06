@@ -26,10 +26,13 @@ export function renderMarkdown(cells: CellSummary[], meta: ReportMeta): string {
     for (const c of group) {
       const ci = `${(c.passRateCI.low * 100).toFixed(0)}–${(c.passRateCI.high * 100).toFixed(0)}%`;
       const passCell = c.completed === 0 ? "—" : `${(c.passRate * 100).toFixed(0)}%`;
+      // "n/m" = not metered: no rep reported a cost, so a dollar ranking would
+      // be misleading (a subscription 0 is not "cheaper" than a metered $0.03).
+      const cps = !c.metered ? "n/m" : c.costPerSuccess === null ? "—" : c.costPerSuccess.toFixed(4);
+      const costCv = !c.metered ? "n/m" : `${(c.cost.cv * 100).toFixed(0)}%`;
       lines.push(
         `| ${c.specId} | ${c.model} | ${c.n} | ${c.completed} | ${c.timeouts} | ${passCell} | ${ci} | ` +
-        `${c.costPerSuccess === null ? "—" : c.costPerSuccess.toFixed(4)} | ` +
-        `${(c.cost.cv * 100).toFixed(0)}% | ` +
+        `${cps} | ${costCv} | ` +
         `${c.tokens.median} | ${c.turns.median} | ${c.wallClockMs.median} |`,
       );
     }
@@ -42,7 +45,7 @@ export function renderCsv(cells: CellSummary[]): string {
   const header = [
     "track", "spec", "model", "n", "completed", "timeouts", "pass_rate", "pass_ci_low", "pass_ci_high",
     "tokens_med", "tokens_min", "tokens_max",
-    "cost_med", "cost_cv", "cost_per_success", "tokens_per_success",
+    "metered", "cost_med", "cost_cv", "cost_per_success", "tokens_per_success",
     "cache_hit_med", "turns_med", "tool_calls_med",
     "wall_ms_med", "ttft_ms_med", "tps_med", "peak_ctx_med",
   ].join(",");
@@ -50,8 +53,10 @@ export function renderCsv(cells: CellSummary[]): string {
     c.track, c.specId, c.model, c.n, c.completed, c.timeouts, c.passRate.toFixed(4),
     c.passRateCI.low.toFixed(4), c.passRateCI.high.toFixed(4),
     c.tokens.median, c.tokens.min, c.tokens.max,
-    c.cost.median.toFixed(6), c.cost.cv.toFixed(4),
-    c.costPerSuccess === null ? "" : c.costPerSuccess.toFixed(6),
+    c.metered,
+    c.metered ? c.cost.median.toFixed(6) : "",
+    c.metered ? c.cost.cv.toFixed(4) : "",
+    !c.metered || c.costPerSuccess === null ? "" : c.costPerSuccess.toFixed(6),
     c.tokensPerSuccess === null ? "" : c.tokensPerSuccess,
     c.cacheHitRatio.median.toFixed(4), c.turns.median, c.toolCalls.median,
     c.wallClockMs.median, c.ttftMs.median, c.outputTps.median, c.peakContext.median,

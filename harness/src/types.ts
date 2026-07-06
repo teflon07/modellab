@@ -103,6 +103,12 @@ export interface CellSummary {
   passRate: number;
   /** 95% Wilson interval on passRate — the reliability band, not a single-shot point. */
   passRateCI: Interval;
+  /**
+   * False when no completed rep reported any cost — a subscription/unmetered
+   * runner (e.g. codex) or a genuinely free local run. Cost columns then render
+   * as "n/m" instead of a misleading $0 that would sort as "cheapest".
+   */
+  metered: boolean;
   tokens: Distribution;
   cost: Distribution;
   cacheHitRatio: Distribution;

@@ -85,7 +85,8 @@ The ~100x context and ~4x cost is Claude Code's harness, not the model. So:
 - **To compare agent efficiency** (what a real Claude Code / Codex session costs
   to do the work), use the CLI runners — there the overhead *is* the measurement.
 - **Never compare cost or tokens across runners**, and never read a subscription
-  `0` as "cheapest."
+  `0` as "cheapest." Unmetered cells print `n/m` (not `0`) in the report and are
+  blank in the CSV, so a $0 can't sort as the cheapest option.
 
 **Token counts are the most comparable proxy, not ground truth.** Different
 models tokenize differently and split reasoning vs output tokens differently, so
