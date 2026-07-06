@@ -23,6 +23,15 @@ export interface Config {
     judge_model?: string;
     effort?: string;
   };
+  openrouter: {
+    base_url: string;
+    /** name of the env var holding the API key — the key itself never lives in config */
+    api_key_env: string;
+    referer?: string;
+    title?: string;
+    effort?: string;
+    judge_model?: string;
+  };
   pi_version: string;
   prices: Record<string, PriceEntry>;
 }
@@ -30,8 +39,8 @@ export interface Config {
 export function parseConfig(text: string): Config {
   const raw = parseYaml(text) ?? {};
   const runner = String(raw.runner ?? "pi");
-  if (runner !== "pi" && runner !== "codex") {
-    throw new Error("config: runner must be 'pi' or 'codex'");
+  if (runner !== "pi" && runner !== "codex" && runner !== "openrouter") {
+    throw new Error("config: runner must be 'pi', 'codex', or 'openrouter'");
   }
   if (runner === "pi" && !raw.obs?.db_path) throw new Error("config: obs.db_path is required");
   const prices: Record<string, PriceEntry> = {};
@@ -62,6 +71,14 @@ export function parseConfig(text: string): Config {
       ephemeral: raw.codex?.ephemeral === undefined ? true : Boolean(raw.codex.ephemeral),
       judge_model: raw.codex?.judge_model ? String(raw.codex.judge_model) : undefined,
       effort: raw.codex?.effort ? String(raw.codex.effort) : undefined,
+    },
+    openrouter: {
+      base_url: String(raw.openrouter?.base_url ?? "https://openrouter.ai/api/v1"),
+      api_key_env: String(raw.openrouter?.api_key_env ?? "OPENROUTER_API_KEY"),
+      referer: raw.openrouter?.referer ? String(raw.openrouter.referer) : undefined,
+      title: raw.openrouter?.title ? String(raw.openrouter.title) : undefined,
+      effort: raw.openrouter?.effort ? String(raw.openrouter.effort) : undefined,
+      judge_model: raw.openrouter?.judge_model ? String(raw.openrouter.judge_model) : undefined,
     },
     pi_version: String(raw.pi_version ?? "unknown"),
     prices,

@@ -6,14 +6,14 @@ import { fileURLToPath } from "node:url";
 import { loadConfig, priceOverride } from "./config";
 import { loadSpecs, resolvePrompt } from "./spec";
 import { buildRunTag } from "./tag";
-import { runOne, runOneCodex } from "./runner";
+import { runOne, runOneCodex, runOneOpenRouter } from "./runner";
 import { collectByTag } from "./collector";
 import { scoreProgrammatic, scoreJudge } from "./scorer";
 import { provisionSandbox, teardownSandbox } from "./sandbox";
 import { summarize } from "./aggregate";
 import { renderMarkdown, renderCsv, renderJson } from "./report";
 import { checkObsHealth } from "./obs";
-import type { Spec, RunResult } from "./types";
+import type { Spec, RunResult, CollectedMetrics } from "./types";
 
 export interface PlannedRun {
   path: string;
@@ -66,6 +66,21 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Resolve the OpenRouter API key from the configured env var. Fail loud and
+  // early if the runner is selected but the key is missing — never silently
+  // degrade to a broken run.
+  const orApiKey = cfg.runner === "openrouter" ? (process.env[cfg.openrouter.api_key_env] ?? "").trim() : "";
+  if (cfg.runner === "openrouter" && !orApiKey) {
+    console.error(`openrouter runner needs an API key in $${cfg.openrouter.api_key_env}, but it is unset/empty. Export it and retry.`);
+    process.exit(1);
+  }
+  const or = {
+    baseUrl: cfg.openrouter.base_url,
+    apiKey: orApiKey,
+    referer: cfg.openrouter.referer,
+    title: cfg.openrouter.title,
+  };
+
   let specs = loadSpecs(resolve(root, "specs"));
   if (values.specs) {
     const want = new Set(values.specs.split(",").map((s) => s.trim()).filter(Boolean));
@@ -92,7 +107,22 @@ async function main(): Promise<void> {
     console.error(`invalid --rep-offset: ${values["rep-offset"]}`);
     process.exit(2);
   }
-  const plan = planRuns(specs, modelsOverride, repsOverride, repOffset);
+  let plan = planRuns(specs, modelsOverride, repsOverride, repOffset);
+  // OpenRouter is a single chat completion with no tool loop, so it can only run
+  // single_shot specs. Drop agentic runs with a visible warning rather than
+  // failing them one-by-one deep in the loop.
+  if (cfg.runner === "openrouter") {
+    const agentic = plan.filter((p) => p.spec.mode !== "single_shot");
+    if (agentic.length) {
+      const ids = [...new Set(agentic.map((p) => p.spec.id))].join(", ");
+      console.error(`[skip] openrouter is single-shot only (no tool loop); skipping ${agentic.length} agentic run(s): ${ids}`);
+    }
+    plan = plan.filter((p) => p.spec.mode === "single_shot");
+    if (!plan.length) {
+      console.error("openrouter: no single_shot specs to run after filtering. Nothing to do.");
+      process.exit(1);
+    }
+  }
   const obsEnv = {
     OBS_ENABLE: "true",
     OBS_SERVER_URL: cfg.obs.server_url,
@@ -157,13 +187,18 @@ async function main(): Promise<void> {
           sandbox: cfg.codex.sandbox, approval: cfg.codex.approval, ephemeral: cfg.codex.ephemeral,
           effort: cfg.codex.effort,
         })
+        : cfg.runner === "openrouter"
+        ? await runOneOpenRouter({
+          model: p.model, promptText, timeoutMs: p.spec.timeout_s * 1000,
+          sessionId: tag, effort: cfg.openrouter.effort, or,
+        })
         : await runOne({
           spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
           promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
           obsExtensionPath: cfg.obs.extension_path,
         });
 
-      let metrics = "metrics" in run ? run.metrics : null;
+      let metrics: CollectedMetrics | null = "metrics" in run ? (run.metrics as CollectedMetrics) : null;
       if (cfg.runner === "pi") {
         // Give the obs server a moment to ingest the session_shutdown event.
         await Bun.sleep(1500);
@@ -184,6 +219,8 @@ async function main(): Promise<void> {
         const rubric = readFileSync(resolve(root, p.spec.scoring.rubric_file), "utf8");
         const judgeModel = cfg.runner === "codex"
           ? cfg.codex.judge_model ?? p.model
+          : cfg.runner === "openrouter"
+          ? cfg.openrouter.judge_model ?? p.model
           : p.spec.scoring.judge_model;
         score = await scoreJudge({
           judgeModel, rubric, task: promptText, output: run.stdout,
@@ -193,6 +230,11 @@ async function main(): Promise<void> {
                 spec: { ...p.spec, mode: "single_shot" }, model, promptText: prompt,
                 cwd: root, timeoutMs: 120_000, env, sessionId: `${tag}:judge`,
                 sandbox: "read-only", approval: cfg.codex.approval, ephemeral: cfg.codex.ephemeral,
+              })
+              : cfg.runner === "openrouter"
+              ? await runOneOpenRouter({
+                model, promptText: prompt, timeoutMs: 120_000,
+                sessionId: `${tag}:judge`, effort: cfg.openrouter.effort, or,
               })
               : await runOne({
                 spec: { ...p.spec, mode: "single_shot" }, model,

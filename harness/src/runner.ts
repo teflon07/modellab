@@ -214,3 +214,119 @@ export async function runOneCodex(opts: RunCodexOpts): Promise<RunCodexResult> {
   const { finalMessage, metrics } = collectCodexMetrics(rawStdout, opts.sessionId, wallClockMs, exitCode !== 0 || timedOut);
   return { exitCode, stdout: finalMessage, stderr, wallClockMs, timedOut, metrics };
 }
+
+// --- OpenRouter runner -----------------------------------------------------
+// The bring-your-own-key reproduce path: a single chat-completion call against
+// the OpenRouter API. Single-shot only (no tool loop), which is exactly what
+// the capability probes need. Usage — including real cost — comes back inline
+// when we pass `usage: { include: true }`, so cost-per-success works with just
+// an API key and no local price table.
+
+export interface OpenRouterConfig {
+  baseUrl: string;
+  apiKey: string;
+  referer?: string;
+  title?: string;
+}
+
+export interface RunOpenRouterOpts {
+  model: string;
+  promptText: string;
+  timeoutMs: number;
+  sessionId: string;
+  effort?: string;
+  or: OpenRouterConfig;
+}
+
+export interface RunOpenRouterResult extends RunOneResult {
+  metrics: CollectedMetrics;
+}
+
+interface OpenRouterUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  cost?: number;
+  prompt_tokens_details?: { cached_tokens?: number };
+  completion_tokens_details?: { reasoning_tokens?: number };
+}
+
+export function buildOpenRouterBody(model: string, promptText: string, effort?: string): Record<string, unknown> {
+  const body: Record<string, unknown> = {
+    model,
+    messages: [{ role: "user", content: promptText }],
+    usage: { include: true },
+  };
+  if (effort) body.reasoning = { effort };
+  return body;
+}
+
+export function collectOpenRouterMetrics(usage: OpenRouterUsage, sessionId: string, wallClockMs: number, failed: boolean): CollectedMetrics {
+  const input = numberField(usage.prompt_tokens);
+  const cached = numberField(usage.prompt_tokens_details?.cached_tokens);
+  const output = numberField(usage.completion_tokens);
+  return {
+    sessionId,
+    totalTokens: numberField(usage.total_tokens) || input + output,
+    inputTokens: input,
+    outputTokens: output,
+    cacheRead: cached,
+    cacheWrite: 0,
+    costTotal: numberField(usage.cost),
+    turns: 1,
+    toolCalls: 0,
+    compactions: 0,
+    peakContext: input,
+    wallClockMs,
+    ttftMs: null,
+    outputTps: null,
+    errorCount: failed ? 1 : 0,
+  };
+}
+
+export async function runOneOpenRouter(opts: RunOpenRouterOpts): Promise<RunOpenRouterResult> {
+  const { or, model, promptText, effort, timeoutMs, sessionId } = opts;
+  const start = performance.now();
+  const controller = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+  let exitCode = 0;
+  let content = "";
+  let stderr = "";
+  let usage: OpenRouterUsage = {};
+  try {
+    const res = await fetch(`${or.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${or.apiKey}`,
+        "Content-Type": "application/json",
+        ...(or.referer ? { "HTTP-Referer": or.referer } : {}),
+        ...(or.title ? { "X-Title": or.title } : {}),
+      },
+      body: JSON.stringify(buildOpenRouterBody(model, promptText, effort)),
+      signal: controller.signal,
+    });
+    const text = await res.text();
+    if (!res.ok) {
+      exitCode = 1;
+      stderr = `openrouter ${res.status}: ${text.slice(0, 500)}`;
+    } else {
+      const json = JSON.parse(text) as any;
+      // OpenRouter can return HTTP 200 with an error body (e.g. upstream refusal).
+      if (json.error) {
+        exitCode = 1;
+        stderr = `openrouter error: ${JSON.stringify(json.error).slice(0, 500)}`;
+      }
+      content = json.choices?.[0]?.message?.content ?? "";
+      usage = (json.usage ?? {}) as OpenRouterUsage;
+    }
+  } catch (err) {
+    exitCode = 1;
+    stderr = timedOut ? "timeout" : `openrouter request failed: ${err}`;
+  } finally {
+    clearTimeout(timer);
+  }
+  const wallClockMs = Math.round(performance.now() - start);
+  const metrics = collectOpenRouterMetrics(usage, sessionId, wallClockMs, exitCode !== 0 || timedOut);
+  return { exitCode, stdout: content, stderr, wallClockMs, timedOut, metrics };
+}

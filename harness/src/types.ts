@@ -1,6 +1,6 @@
 export type Track = "frontier" | "local" | "crossover";
 export type Mode = "single_shot" | "agentic";
-export type RunnerBackend = "pi" | "codex";
+export type RunnerBackend = "pi" | "codex" | "openrouter";
 
 export function isTrack(x: string): x is Track {
   return x === "frontier" || x === "local" || x === "crossover";
