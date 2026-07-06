@@ -1,0 +1,16 @@
+# Claude runner: runs the local `claude` CLI (Claude Code) in print mode using
+# your Claude Code subscription/auth. Like the codex runner it measures the AGENT
+# (Claude Code's system-prompt overhead included), not the raw model — see the
+# "Cost honesty" section of the README. total_cost_usd is a notional
+# API-equivalent price, not a subscription invoice.
+#
+# Usage:
+#   bun run bench --config config/claude.yaml --models sonnet --run-id claude1
+#
+# Model names are Claude Code aliases (sonnet, opus, haiku) or full ids
+# (claude-sonnet-5). single_shot probes run with tools disabled; agentic specs
+# run with --dangerously-skip-permissions in the fixture sandbox.
+runner: claude
+claude:
+  judge_model: sonnet
+prices: {}

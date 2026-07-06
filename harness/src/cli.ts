@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { loadConfig, priceOverride } from "./config";
 import { loadSpecs, resolvePrompt } from "./spec";
 import { buildRunTag } from "./tag";
-import { runOne, runOneCodex, runOneOpenRouter } from "./runner";
+import { runOne, runOneCodex, runOneClaude, runOneOpenRouter } from "./runner";
 import { collectByTag } from "./collector";
 import { scoreProgrammatic, scoreJudge } from "./scorer";
 import { provisionSandbox, teardownSandbox } from "./sandbox";
@@ -187,6 +187,11 @@ async function main(): Promise<void> {
           sandbox: cfg.codex.sandbox, approval: cfg.codex.approval, ephemeral: cfg.codex.ephemeral,
           effort: cfg.codex.effort,
         })
+        : cfg.runner === "claude"
+        ? await runOneClaude({
+          model: p.model, promptText, singleShot: p.spec.mode === "single_shot",
+          cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env, sessionId: tag,
+        })
         : cfg.runner === "openrouter"
         ? await runOneOpenRouter({
           model: p.model, promptText, timeoutMs: p.spec.timeout_s * 1000,
@@ -225,6 +230,8 @@ async function main(): Promise<void> {
         const rubric = readFileSync(resolve(root, p.spec.scoring.rubric_file), "utf8");
         const judgeModel = cfg.runner === "codex"
           ? cfg.codex.judge_model ?? p.model
+          : cfg.runner === "claude"
+          ? cfg.claude.judge_model ?? p.model
           : cfg.runner === "openrouter"
           ? cfg.openrouter.judge_model ?? p.model
           : p.spec.scoring.judge_model;
@@ -236,6 +243,11 @@ async function main(): Promise<void> {
                 spec: { ...p.spec, mode: "single_shot" }, model, promptText: prompt,
                 cwd: root, timeoutMs: 120_000, env, sessionId: `${tag}:judge`,
                 sandbox: "read-only", approval: cfg.codex.approval, ephemeral: cfg.codex.ephemeral,
+              })
+              : cfg.runner === "claude"
+              ? await runOneClaude({
+                model, promptText: prompt, singleShot: true,
+                cwd: root, timeoutMs: 120_000, env, sessionId: `${tag}:judge`,
               })
               : cfg.runner === "openrouter"
               ? await runOneOpenRouter({

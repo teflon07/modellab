@@ -284,6 +284,114 @@ export function collectOpenRouterMetrics(usage: OpenRouterUsage, sessionId: stri
   };
 }
 
+// --- Claude runner ---------------------------------------------------------
+// Runs the local `claude` CLI (Claude Code) in print mode, the subscription-auth
+// analog of the codex runner. Like codex/pi it measures the AGENT, not the raw
+// model: every call carries Claude Code's system-prompt overhead (tens of
+// thousands of cached tokens), so its token/cost figures are not comparable to a
+// raw-API runner (openrouter) — see the "Cost honesty" section of the README.
+// `total_cost_usd` is a notional API-equivalent price, not a subscription invoice.
+
+export interface BuildClaudeArgsOpts {
+  model: string;
+  singleShot: boolean;
+}
+
+// Flags only — the prompt is delivered on stdin. `--allowedTools` is variadic in
+// the claude CLI and would swallow a trailing prompt positional, so it must not
+// share the argv with the prompt.
+export function buildClaudeArgs(opts: BuildClaudeArgsOpts): string[] {
+  const args = ["-p", "--output-format", "json", "--model", opts.model];
+  if (opts.singleShot) {
+    // Forbid tools so a capability probe is as close to a single model turn as
+    // the agent CLI allows (the system-prompt overhead is inherent regardless).
+    args.push("--allowedTools", "");
+  } else {
+    // Agentic runs edit sandboxed fixtures; skip the interactive permission gate.
+    args.push("--dangerously-skip-permissions");
+  }
+  return args;
+}
+
+export interface RunClaudeOpts extends BuildClaudeArgsOpts {
+  promptText: string;
+  cwd: string;
+  timeoutMs: number;
+  env: Record<string, string>;
+  sessionId: string;
+}
+
+export interface RunClaudeResult extends RunOneResult {
+  metrics: CollectedMetrics;
+}
+
+interface ClaudeUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_read_input_tokens?: number;
+  cache_creation_input_tokens?: number;
+}
+
+export function collectClaudeMetrics(stdout: string, sessionId: string, wallClockMs: number, failed: boolean): {
+  finalMessage: string;
+  metrics: CollectedMetrics;
+} {
+  let obj: any = null;
+  try { obj = JSON.parse(stdout.trim()); } catch { /* leave null */ }
+  const usage = (obj?.usage ?? {}) as ClaudeUsage;
+  const input = numberField(usage.input_tokens);
+  const output = numberField(usage.output_tokens);
+  const cacheRead = numberField(usage.cache_read_input_tokens);
+  const cacheWrite = numberField(usage.cache_creation_input_tokens);
+  // A result object with subtype != "success" or is_error is a failed run even
+  // if the process exited 0.
+  const isError = failed || obj == null || obj.is_error === true || (obj.subtype != null && obj.subtype !== "success");
+  return {
+    finalMessage: typeof obj?.result === "string" ? obj.result : "",
+    metrics: {
+      sessionId: typeof obj?.session_id === "string" ? obj.session_id : sessionId,
+      totalTokens: input + output,
+      inputTokens: input,
+      outputTokens: output,
+      cacheRead,
+      cacheWrite,
+      costTotal: numberField(obj?.total_cost_usd),
+      turns: numberField(obj?.num_turns) || 1,
+      toolCalls: 0,
+      compactions: 0,
+      // Whole context carried into the model, agent scaffolding included.
+      peakContext: input + cacheRead + cacheWrite,
+      wallClockMs,
+      ttftMs: numberField(obj?.ttft_ms) || null,
+      outputTps: null,
+      errorCount: isError ? 1 : 0,
+    },
+  };
+}
+
+export async function runOneClaude(opts: RunClaudeOpts): Promise<RunClaudeResult> {
+  const args = buildClaudeArgs(opts);
+  const start = performance.now();
+  const proc = Bun.spawn(["claude", ...args], {
+    cwd: opts.cwd,
+    env: { ...process.env, ...opts.env },
+    stdin: new TextEncoder().encode(opts.promptText),
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; proc.kill(); }, opts.timeoutMs);
+  const [exitCode, rawStdout, stderr] = await Promise.all([
+    proc.exited,
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+  ]);
+  clearTimeout(timer);
+  const wallClockMs = Math.round(performance.now() - start);
+  const { finalMessage, metrics } = collectClaudeMetrics(rawStdout, opts.sessionId, wallClockMs, exitCode !== 0 || timedOut);
+  return { exitCode, stdout: finalMessage, stderr, wallClockMs, timedOut, metrics };
+}
+
 export async function runOneOpenRouter(opts: RunOpenRouterOpts): Promise<RunOpenRouterResult> {
   const { or, model, promptText, effort, timeoutMs, sessionId } = opts;
   const start = performance.now();

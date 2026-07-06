@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildCodexArgs, buildPiArgs, collectCodexMetrics, buildOpenRouterBody, collectOpenRouterMetrics } from "../src/runner";
+import { buildCodexArgs, buildPiArgs, collectCodexMetrics, buildOpenRouterBody, collectOpenRouterMetrics, buildClaudeArgs, collectClaudeMetrics } from "../src/runner";
 import type { Spec } from "../src/types";
 
 const base: Spec = {
@@ -163,4 +163,55 @@ test("openrouter metrics fall back to input+output and flag failures", () => {
   expect(m.totalTokens).toBe(15);
   expect(m.costTotal).toBe(0);
   expect(m.errorCount).toBe(1);
+});
+
+test("claude single-shot args disable tools and print JSON (prompt goes via stdin)", () => {
+  const args = buildClaudeArgs({ model: "sonnet", singleShot: true });
+  expect(args.slice(0, 3)).toEqual(["-p", "--output-format", "json"]);
+  expect(args).toContain("--model");
+  expect(args).toContain("sonnet");
+  // --allowedTools must be last (variadic) so it can't swallow other args; the
+  // prompt is never in argv.
+  expect(args[args.length - 2]).toBe("--allowedTools");
+  expect(args[args.length - 1]).toBe("");
+  expect(args).not.toContain("--dangerously-skip-permissions");
+});
+
+test("claude agentic args skip permissions and keep tools", () => {
+  const args = buildClaudeArgs({ model: "sonnet", singleShot: false });
+  expect(args).toContain("--dangerously-skip-permissions");
+  expect(args).not.toContain("--allowedTools");
+});
+
+test("claude metrics parse usage, cost, cache, and final message", () => {
+  const json = JSON.stringify({
+    type: "result", subtype: "success", is_error: false, num_turns: 1,
+    result: "OK", session_id: "sess-x", total_cost_usd: 0.0975, ttft_ms: 2815,
+    usage: { input_tokens: 2, output_tokens: 4, cache_read_input_tokens: 23415, cache_creation_input_tokens: 15074 },
+  });
+  const { finalMessage, metrics } = collectClaudeMetrics(json, "fallback", 3225, false);
+  expect(finalMessage).toBe("OK");
+  expect(metrics.sessionId).toBe("sess-x");
+  expect(metrics.inputTokens).toBe(2);
+  expect(metrics.outputTokens).toBe(4);
+  expect(metrics.totalTokens).toBe(6);
+  expect(metrics.cacheRead).toBe(23415);
+  expect(metrics.cacheWrite).toBe(15074);
+  expect(metrics.peakContext).toBe(38491); // input + cache read + cache create
+  expect(metrics.costTotal).toBeCloseTo(0.0975);
+  expect(metrics.turns).toBe(1);
+  expect(metrics.ttftMs).toBe(2815);
+  expect(metrics.errorCount).toBe(0);
+});
+
+test("claude metrics flag a non-success result as an error", () => {
+  const json = JSON.stringify({ type: "result", subtype: "error_max_turns", is_error: true, result: "", session_id: "s" });
+  const { metrics } = collectClaudeMetrics(json, "fallback", 100, false);
+  expect(metrics.errorCount).toBe(1);
+});
+
+test("claude metrics flag unparseable output as an error with fallback session", () => {
+  const { metrics } = collectClaudeMetrics("not json", "fallback-sess", 50, false);
+  expect(metrics.errorCount).toBe(1);
+  expect(metrics.sessionId).toBe("fallback-sess");
 });
