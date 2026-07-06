@@ -28,7 +28,7 @@ jobs:
           # stale-brand scrubbing runs in the private publish tooling before
           # anything is pushed here; enumerating those identifiers in this
           # public file would itself disclose them.
-          if grep -rniE 'BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20}' \
+          if grep -rniE 'BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|sk-or-v1-[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{20}' \
                --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.sandboxes .; then
             echo "::error::leak guard found a private key or API token"
             exit 1
