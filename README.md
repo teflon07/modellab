@@ -50,14 +50,46 @@ inference is worth it.
 
 ---
 
-## Cost honesty
+## Cost & comparison honesty
 
-`cost_total` values are **not directly comparable across providers** because
-cache pricing differs: Anthropic charges for cache writes separately, OpenRouter
-bundles differently, and local models cost zero. Token counts are the ground
-truth for comparing work done. The `prices` table in `config/modellab.yaml`
-normalizes cost to a per-token basis so cross-provider comparisons are on equal
-footing, but treat normalized cost as an estimate, not an invoice.
+Two numbers that print the same can mean very different things here. Read them
+with the runner in mind.
+
+**Cost provenance differs by runner.** `cost_total` does not come from one place:
+
+| Runner | Where cost comes from | What the number means |
+|---|---|---|
+| openrouter | OpenRouter `usage.cost` | a real, metered API charge |
+| claude | Claude Code `total_cost_usd` | notional API-equivalent price, **not** a subscription invoice |
+| codex | not reported (`0`) | **not metered** — `0` means unmeasured, never "free" |
+| pi | observability telemetry | provider-reported; cache accounting varies |
+
+A `prices` table (per config) can override any of these to recompute cost from
+token counts on a common basis. Treat a recomputed number as an estimate, not an
+invoice.
+
+**Agent runners measure the agent, not the raw model.** The CLI runners (claude,
+codex, pi) wrap the model in an agent with a large system prompt, so every call
+carries tens of thousands of scaffolding tokens the task never asked for. The
+same model on the same `arc-lite` task, measured two ways:
+
+| Runner | model | tokens | peak context | cost / success |
+|---|---|---|---|---|
+| openrouter (raw API) | claude-sonnet-5 | ~1,960 | **~375** | **~$0.03** |
+| claude (Claude Code) | sonnet | ~1,465 | **~40,000** | **~$0.13** |
+
+The ~100x context and ~4x cost is Claude Code's harness, not the model. So:
+
+- **To compare raw model capability or cost, use the openrouter runner** — one
+  API call, no agent scaffolding, real metered cost.
+- **To compare agent efficiency** (what a real Claude Code / Codex session costs
+  to do the work), use the CLI runners — there the overhead *is* the measurement.
+- **Never compare cost or tokens across runners**, and never read a subscription
+  `0` as "cheapest."
+
+**Token counts are the most comparable proxy, not ground truth.** Different
+models tokenize differently and split reasoning vs output tokens differently, so
+tokens compare work only roughly — best within the same runner and model family.
 
 ---
 
@@ -65,18 +97,25 @@ footing, but treat normalized cost as an estimate, not an invoice.
 
 modellab talks to models through pluggable runners; pick one per run with `--config`.
 
-| Runner | Config | Auth | Reproducible by anyone? |
-|---|---|---|---|
-| **openrouter** | `config/openrouter.yaml` | `OPENROUTER_API_KEY` | **Yes** — the reproduce path |
-| **codex** | `config/codex.yaml` | local Codex CLI login | Yes, with the Codex CLI |
-| **pi** | `config/modellab.yaml` | private Pi observability stack | No — internal/optional |
+| Runner | Config | Auth | Measures | Reproducible by anyone? |
+|---|---|---|---|---|
+| **openrouter** | `config/openrouter.yaml` | `OPENROUTER_API_KEY` | raw model (one API call) | **Yes** — the reproduce path |
+| **claude** | `config/claude.yaml` | local Claude Code login | the Claude Code agent | Yes, with the `claude` CLI |
+| **codex** | `config/codex.yaml` | local Codex CLI login | the Codex agent | Yes, with the `codex` CLI |
+| **pi** | `config/modellab.yaml` | private Pi observability stack | the Pi agent | No — internal/optional |
 
 The **openrouter** runner is a single chat-completion call (single-shot, no tool
 loop). It runs the capability probes — the maze / logic-grid / arc-lite /
 planning tasks behind the published faculty numbers — against any OpenRouter
 model with your own key, and reads real per-call cost straight from the API
 response. Agentic coding specs need a tool loop and are skipped automatically
-under this runner; use the codex runner for those.
+under this runner; use an agent runner for those.
+
+The **claude** and **codex** runners drive the local `claude` (Claude Code) and
+`codex` CLIs in headless mode, using your subscription auth. They measure the
+*agent* doing the work, not the raw model: single-shot probes run with tools off,
+agentic specs run in the fixture sandbox. See [Cost & comparison honesty](#cost--comparison-honesty)
+before comparing their numbers to the openrouter runner.
 
 The **pi** runner is what the maintainer uses internally; it depends on a private
 observability service and is not required to reproduce anything here.
@@ -100,20 +139,23 @@ your pass rates should land inside the reported confidence bands, not match a
 single number exactly. Results land in `results/<runId>/` (see
 [Output files](#output-files)).
 
-### Run through Codex instead
+### Run through an agent CLI (Claude Code or Codex)
 
-To run via your local Codex CLI authentication, use the Codex config and override
-the spec model list with a Codex model:
+To measure the agent rather than the raw model, use your local `claude` or
+`codex` CLI auth:
 
 ```sh
-bun run bench --config config/codex.yaml --models gpt-5.5 --run-id codex1
+bun run bench --config config/claude.yaml --models sonnet   --run-id claude1
+bun run bench --config config/codex.yaml  --models gpt-5.5  --run-id codex1
 ```
 
-The Codex runner calls `codex exec --json` and reads token usage from the JSONL
-stream. It uses ChatGPT-managed Codex auth when your local Codex CLI is logged in
-that way. Cost is reported as `0` because subscription-backed Codex usage is not
-API-billed through this harness; use token counts, wall time, and pass rate as
-the comparable metrics for these runs.
+The **claude** runner drives `claude -p --output-format json` and reads
+`total_cost_usd` plus token usage (a notional API-equivalent cost, not a
+subscription invoice). The **codex** runner drives `codex exec --json`; its cost
+prints as `0` because subscription-backed Codex usage is not API-billed through
+this harness — use tokens, wall time, and pass rate there. Both carry the agent's
+system-prompt overhead, so their numbers are not comparable to the openrouter
+runner (see [Cost & comparison honesty](#cost--comparison-honesty)).
 
 ### Internal: the pi runner
 
