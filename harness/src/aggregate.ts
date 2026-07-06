@@ -67,6 +67,8 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
       timeouts,
       passRate: completed.length === 0 ? 0 : passes.length / completed.length,
       passRateCI: wilsonInterval(passes.length, completed.length),
+      // Unmetered when nothing reported a cost (subscription runner / free local).
+      metered: sumCost > 0,
       tokens: distribution(num((r) => r.totalTokens)),
       cost: distribution(num((r) => r.costTotal)),
       cacheHitRatio: distribution(num(cacheHitRatio)),
