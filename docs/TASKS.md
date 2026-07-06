@@ -190,15 +190,17 @@ separates only as the path grows and per-step error compounds.
 | Fable 5 | 100% · $0.09 | 100% · $0.25 | **100% · $0.59** |
 | Opus 4.8 | 100% · $0.11 | 100% · $0.33 | **80% · $0.61** |
 | Sonnet 5 | 100% · $0.08 | 100% · $0.20 | **0% · —** |
-| GPT-5.5 | 100% · $0.04 | 80% · $0.12 | 90% · — |
+| GPT-5.5 | 100% · $0.04 | 80% · $0.12 | 90% · $0.30 |
 | GLM 5.2 | 60% · $0.02 | not run | not run |
 | Haiku 4.5 | 10% · $0.35 | not run | not run |
 
 At 44 moves every frontier model is perfect (GLM/Haiku already trail); at 72 the
 first crack shows (GPT-5.5 → 80%); at 96 Fable holds 100%, GPT-5.5 90%, Opus drops
-to 80%, and Sonnet collapses to 0%. GPT-5.5 runs via Codex (subscription-billed,
-so its est. $/success is not list-priced). Gaps marked "not run" are open cells
-(GLM/Haiku beyond 44) — cheap to fill.
+to 80%, and Sonnet collapses to 0%. GPT-5.5 runs via Codex, which reports no
+metered cost, so its est. $/success is list-price notional — recomputed from
+token counts at GPT-5.5's public per-token rates (\$5 / \$30 per Mtok in/out,
+cached input at \$0.50), the same list-price basis used for every other cell.
+Gaps marked "not run" are open cells (GLM/Haiku beyond 44) — cheap to fill.
 
 **Deduction — logic-grid-hard (search-required 5×5), 10 reps**
 
