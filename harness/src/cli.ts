@@ -208,6 +208,12 @@ async function main(): Promise<void> {
       let score = { pass: false, score: null as number | null };
       if (run.exitCode !== 0 || run.timedOut) {
         score = { pass: false, score: 0 };
+        // Surface a real runner/API error loudly: without this an auth failure
+        // (e.g. a bad key -> 401) is silently recorded as a "0% pass" rep and
+        // reads as a model failure rather than a misconfiguration.
+        if (!run.timedOut && run.stderr) {
+          console.error(`[runner-error] ${tag}: ${run.stderr.replace(/\s+/g, " ").slice(0, 300)}`);
+        }
       } else if (p.spec.scoring.kind === "programmatic" && p.spec.fixture) {
         // Single-shot has no tools, so it can't write files; surface its answer to
         // verify as response.txt (raw pi stdout; verify extracts the assistant text).
