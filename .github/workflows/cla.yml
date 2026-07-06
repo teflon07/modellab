@@ -34,6 +34,6 @@ jobs:
           PERSONAL_ACCESS_TOKEN: ${{ secrets.CLA_SIGNATURES_TOKEN }}
         with:
           path-to-signatures: "signatures/cla.json"
-          path-to-document: "https://github.com/YOUR_GITHUB_USERNAME/modellab/blob/main/docs/CLA.md"
+          path-to-document: "https://github.com/teflon07/modellab/blob/main/docs/CLA.md"
           branch: "cla-signatures"
           allowlist: "dependabot[bot]"
