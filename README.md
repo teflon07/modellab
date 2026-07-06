@@ -27,7 +27,7 @@ exists precisely to measure the gap.
 
 | Track | What runs here | Headline metrics |
 |---|---|---|
-| **frontier** | Flagship API models (Claude, GPT, Gemini) | Cost per run, cost per success, cache-hit ratio |
+| **frontier** | Flagship API models (e.g. Claude, GPT, Fable) | Cost per run, cost per success, cache-hit ratio |
 | **local** | Models served locally via Ollama or similar | Tokens/sec, model size, tokens per success |
 | **crossover** | Same task, both a frontier model and a local model | Pass rate gap, token-count ratio, honest capability delta |
 
@@ -36,6 +36,10 @@ The local track rewards models that are fast and accurate without a per-token
 bill. The crossover track reports the honest gap between the two on identical
 tasks, which is the most useful signal for deciding when paying for frontier
 inference is worth it.
+
+The models benchmarked so far include **Claude** (Sonnet 5, Opus 4.8),
+**GPT-5.5**, **Fable 5**, **GLM 5.2**, and **Haiku 4.5**; see
+[`docs/TASKS.md`](docs/TASKS.md) for full per-model results.
 
 ---
 
