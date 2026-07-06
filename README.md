@@ -46,7 +46,7 @@ inference is worth it.
 - **Scoring:** Each spec declares its scoring method.
   - `programmatic` -- the fixture's `verify` commands must all exit 0. Binary pass/fail.
   - `judge` -- an LLM evaluator reads the model's output against a rubric file and returns a score from 0 to 1.0. The judge model and rubric are declared in the spec.
-- **Traceability:** Every rep records its raw metrics plus the model's output (`results/<runId>/outputs.jsonl`). Under the internal pi runner each rep also carries an observability session ID for full transcript, token-level cost, and tool-call retrieval.
+- **Traceability:** Every rep records its raw metrics plus the model's output (`results/<runId>/outputs.jsonl`).
 
 ---
 
@@ -62,14 +62,13 @@ with the runner in mind.
 | openrouter | OpenRouter `usage.cost` | a real, metered API charge |
 | claude | Claude Code `total_cost_usd` | notional API-equivalent price, **not** a subscription invoice |
 | codex | not reported (`0`) | **not metered** — `0` means unmeasured, never "free" |
-| pi | observability telemetry | provider-reported; cache accounting varies |
 
 A `prices` table (per config) can override any of these to recompute cost from
 token counts on a common basis. Treat a recomputed number as an estimate, not an
 invoice.
 
 **Agent runners measure the agent, not the raw model.** The CLI runners (claude,
-codex, pi) wrap the model in an agent with a large system prompt, so every call
+codex) wrap the model in an agent with a large system prompt, so every call
 carries tens of thousands of scaffolding tokens the task never asked for. The
 same model on the same `arc-lite` task, measured two ways:
 
@@ -103,7 +102,6 @@ modellab talks to models through pluggable runners; pick one per run with `--con
 | **openrouter** | `config/openrouter.yaml` | `OPENROUTER_API_KEY` | raw model (one API call) | **Yes** — the reproduce path |
 | **claude** | `config/claude.yaml` | local Claude Code login | the Claude Code agent | Yes, with the `claude` CLI |
 | **codex** | `config/codex.yaml` | local Codex CLI login | the Codex agent | Yes, with the `codex` CLI |
-| **pi** | `config/modellab.yaml` | private Pi observability stack | the Pi agent | No — internal/optional |
 
 The **openrouter** runner is a single chat-completion call (single-shot, no tool
 loop). It runs the capability probes — the maze / logic-grid / arc-lite /
@@ -117,9 +115,6 @@ The **claude** and **codex** runners drive the local `claude` (Claude Code) and
 *agent* doing the work, not the raw model: single-shot probes run with tools off,
 agentic specs run in the fixture sandbox. See [Cost & comparison honesty](#cost--comparison-honesty)
 before comparing their numbers to the openrouter runner.
-
-The **pi** runner is what the maintainer uses internally; it depends on a private
-observability service and is not required to reproduce anything here.
 
 ---
 
@@ -157,17 +152,6 @@ prints as `0` because subscription-backed Codex usage is not API-billed through
 this harness — use tokens, wall time, and pass rate there. Both carry the agent's
 system-prompt overhead, so their numbers are not comparable to the openrouter
 runner (see [Cost & comparison honesty](#cost--comparison-honesty)).
-
-### Internal: the pi runner
-
-The pi runner requires the private Pi observability stack and is not needed to
-reproduce published results. If you have it, point `MODELLAB_OBS_DIR` at your
-install, start the obs server, and run with the default config:
-
-```sh
-export MODELLAB_OBS_DIR=/path/to/pi/observability
-bun run bench --config config/modellab.yaml
-```
 
 ### Output files
 
