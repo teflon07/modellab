@@ -77,7 +77,7 @@ harder: its median path is ~21 moves, essentially the baseline — its only adde
 load is parsing 4 grids. The real lever is path length, so we added graduated
 rungs `maze-3d-15x6` (6×15×15, ~67-move) and `maze-3d-19x7` (7×19×19, ~132-move).
 At **15×6: Fable 90%, Sonnet 80%, Opus 60%, GPT-5.5 100%** (Anthropic run
-single-shot via pi; GPT via Codex/ChatGPT-OAuth, unthrottled). The **19×7** rung
+single-shot; GPT via Codex/ChatGPT-OAuth, unthrottled). The **19×7** rung
 is being re-run serially — the first attempt ran three Anthropic models
 concurrently and self-inflicted HTTP 429s (see Methodology), invalidating those
 cells; GPT-5.5 (separate rate bucket) hit 100% there. *19×7 Anthropic numbers
@@ -174,7 +174,7 @@ Two headline reads:
 
 ## Headline results (pass · median tokens · estimated $/success)
 
-Estimated cost is list-price notional: pi prices each run at the model's public
+Estimated cost is list-price notional: the harness prices each run at the model's public
 per-token list rate, summed over all reps and divided by successes. It surfaces
 the price spread the token counts hide (Fable is $10/$50 per Mtok; Haiku/GLM are
 an order of magnitude cheaper). GPT-5.5's figure is a floor — its reasoning
@@ -271,10 +271,10 @@ first attempt self-inflicted rate-limit errors (below).
 - **n = 10** per cell; pass rates carry a 95% Wilson interval. Overlapping
   intervals mean "tied," not "ranked."
 - **Cross-harness / hidden reasoning tokens:** GPT-5.5 runs via the Codex
-  runner (ChatGPT-OAuth) — there is no single-shot pi path for it (the
+  runner (ChatGPT-OAuth) — there is no single-shot path for it (the
   `openai-codex` provider only functions through Codex; default-config yields an
   empty no-op). On these single_shot specs Codex answers in **one turn** (verified:
-  a direct move-string, no tool calls), so pass rates *are* comparable to the pi
+  a direct move-string, no tool calls), so pass rates *are* comparable to the
   single-shot Anthropic runs. What is **not** comparable is cost/tokens (Codex
   reports cost=0 and counts reasoning differently, e.g. 79K vs Fable's 16K at
   15×6) — compare GPT-5.5 on pass rate and wall time, not cost. GPT also runs on a
