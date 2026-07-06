@@ -1,7 +1,7 @@
-# Internal runner (optional). Requires the private Pi observability stack; not
-# needed to reproduce published numbers — use config/openrouter.yaml for that.
-# Point MODELLAB_OBS_DIR at your obs install, e.g.:
-#   export MODELLAB_OBS_DIR=/path/to/pi/observability
+# Optional local observability runner; not needed to reproduce published
+# numbers. Use config/openrouter.yaml for the public, API-key-based path.
+# Point MODELLAB_OBS_DIR at an observability install, e.g.:
+#   export MODELLAB_OBS_DIR=/path/to/observability
 obs:
   db_path: ${MODELLAB_OBS_DIR}/db/obs.db
   server_url: http://127.0.0.1:43190
