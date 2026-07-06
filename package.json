@@ -3,7 +3,13 @@
   "version": "0.1.0",
   "type": "module",
   "private": false,
-  "license": "MIT",
+  "description": "A benchmark lab that measures frontier and local LLMs on real-world tasks and abstract-reasoning probes, with per-faculty scoring and reproducible cost/efficiency metrics.",
+  "license": "MIT OR Apache-2.0",
+  "author": "teflon07",
+  "repository": { "type": "git", "url": "git+https://github.com/teflon07/modellab.git" },
+  "homepage": "https://github.com/teflon07/modellab#readme",
+  "bugs": { "url": "https://github.com/teflon07/modellab/issues" },
+  "keywords": ["llm", "benchmark", "evaluation", "reasoning", "openrouter", "bun"],
   "bin": {
     "modellab": "harness/src/cli.ts"
   },

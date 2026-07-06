@@ -1,10 +1,15 @@
 # modellab
 
-A benchmark lab that measures frontier and local LLMs on real-world tasks, with
-an emphasis on efficiency: token count, cache utilization, turn count, latency,
-and cost per successful run. All results are collected through the
-[Pi observability platform](https://github.com/your-org/pi), so every run is
-traceable to its session, its raw metrics, and its transcript.
+A benchmark lab that measures frontier and local LLMs on real-world tasks and
+abstract-reasoning probes, with an emphasis on efficiency: token count, cache
+utilization, turn count, latency, and cost per successful run. Every `(spec,
+model)` cell is run multiple times and reported as a distribution with a 95%
+pass-rate confidence interval — not a single cherry-picked number.
+
+modellab talks to models through pluggable **runners**. To reproduce the
+published capability numbers yourself, use the OpenRouter runner with your own
+API key — no private infrastructure required. See
+[Reproduce the numbers](#reproduce-the-numbers).
 
 ---
 
@@ -35,7 +40,7 @@ inference is worth it.
 - **Scoring:** Each spec declares its scoring method.
   - `programmatic` -- the fixture's `verify` commands must all exit 0. Binary pass/fail.
   - `judge` -- an LLM evaluator reads the model's output against a rubric file and returns a score from 0 to 1.0. The judge model and rubric are declared in the spec.
-- **Traceability:** Every rep is backed by a Pi observability session ID. You can retrieve the full transcript, token-level cost breakdown, and tool-call log for any individual run.
+- **Traceability:** Every rep records its raw metrics plus the model's output (`results/<runId>/outputs.jsonl`). Under the internal pi runner each rep also carries an observability session ID for full transcript, token-level cost, and tool-call retrieval.
 
 ---
 
@@ -50,43 +55,72 @@ footing, but treat normalized cost as an estimate, not an invoice.
 
 ---
 
-## How to run
+## Runners
 
-### 1. Start the obs server
+modellab talks to models through pluggable runners; pick one per run with `--config`.
 
-```sh
-cd <workspace>/.pi/observability/apps/observability
-OBS_AUTH_TOKEN=devtoken OBS_HOST=127.0.0.1 OBS_PORT=43190 OBS_DB_PATH=../../db/obs.db bun server.ts
-```
+| Runner | Config | Auth | Reproducible by anyone? |
+|---|---|---|---|
+| **openrouter** | `config/openrouter.yaml` | `OPENROUTER_API_KEY` | **Yes** — the reproduce path |
+| **codex** | `config/codex.yaml` | local Codex CLI login | Yes, with the Codex CLI |
+| **pi** | `config/modellab.yaml` | private Pi observability stack | No — internal/optional |
 
-### 2. Configure
+The **openrouter** runner is a single chat-completion call (single-shot, no tool
+loop). It runs the capability probes — the maze / logic-grid / arc-lite /
+planning tasks behind the published faculty numbers — against any OpenRouter
+model with your own key, and reads real per-call cost straight from the API
+response. Agentic coding specs need a tool loop and are skipped automatically
+under this runner; use the codex runner for those.
 
-Edit `config/modellab.yaml` to confirm `db_path`, `server_url`, `token`, and `prices`.
+The **pi** runner is what the maintainer uses internally; it depends on a private
+observability service and is not required to reproduce anything here.
 
-You MUST also set `obs.extension_path` to the absolute path of the pi-observability
-extension, for example:
+---
 
-```yaml
-obs:
-  extension_path: ~/.pi/observability/extension/pi-observability.ts
-```
-
-Without this, `pi` runs produce NO telemetry and the report will be empty.
-
-For each spec you want to run, fill in the `models:` list. Run `pi --list-models`
-to see what is available on your system, or consult `config/available-models.txt`
-for the full catalog.
-
-```yaml
-# specs/local/extract-json.yaml
-models: ["ollama/llama3.1"]
-```
-
-### 3. Run benchmarks
+## Reproduce the numbers
 
 ```sh
-bun run bench
+export OPENROUTER_API_KEY=sk-or-...
+bun install
+bun run bench --config config/openrouter.yaml \
+  --models anthropic/claude-sonnet-5,openai/gpt-5.5 \
+  --run-id repro1
 ```
+
+Pass real OpenRouter model slugs via `--models` (the spec defaults use internal
+aliases). Because each probe is generated fresh per rep and scored
+programmatically, you are measuring the same faculties on the same task family —
+your pass rates should land inside the reported confidence bands, not match a
+single number exactly. Results land in `results/<runId>/` (see
+[Output files](#output-files)).
+
+### Run through Codex instead
+
+To run via your local Codex CLI authentication, use the Codex config and override
+the spec model list with a Codex model:
+
+```sh
+bun run bench --config config/codex.yaml --models gpt-5.5 --run-id codex1
+```
+
+The Codex runner calls `codex exec --json` and reads token usage from the JSONL
+stream. It uses ChatGPT-managed Codex auth when your local Codex CLI is logged in
+that way. Cost is reported as `0` because subscription-backed Codex usage is not
+API-billed through this harness; use token counts, wall time, and pass rate as
+the comparable metrics for these runs.
+
+### Internal: the pi runner
+
+The pi runner requires the private Pi observability stack and is not needed to
+reproduce published results. If you have it, point `MODELLAB_OBS_DIR` at your
+install, start the obs server, and run with the default config:
+
+```sh
+export MODELLAB_OBS_DIR=/path/to/pi/observability
+bun run bench --config config/modellab.yaml
+```
+
+### Output files
 
 Results land in `results/<runId>/`:
 
@@ -95,21 +129,6 @@ Results land in `results/<runId>/`:
 | `report.md` | Human-readable summary with per-cell pass rates and distributions |
 | `results.csv` | One row per rep, all metrics |
 | `results.json` | Same data, structured |
-
-### Run through Codex directly
-
-To run via your local Codex CLI authentication instead of `pi`, use the Codex
-config and override the spec model list with a Codex model:
-
-```sh
-bun run bench --config config/codex.yaml --models gpt-5.5 --run-id codex1
-```
-
-The Codex runner calls `codex exec --json` and reads token usage from the JSONL
-stream. It uses ChatGPT-managed Codex auth when your local Codex CLI is logged
-in that way. Cost is reported as `0` because subscription-backed Codex usage is
-not API-billed through this harness; use token counts, wall time, and pass rate
-as the comparable metrics for these runs.
 
 ---
 
@@ -214,5 +233,14 @@ generated probe, add a `fixture.generator` command (see `docs/TASKS.md`).
 
 ## Roadmap
 
-- **Phase 2 (done):** A live dashboard Benchmarks view reads modellab's `results/<runId>/` and renders per-cell heatmaps, per-run distribution strips, a cost/tokens-per-success ranking (with the 95% pass-rate band and run-to-run cost variance), and a regression watch that diffs each `(model, spec)` cell against its previous run. Lives in `tools/personal-dashboard` (`frontend/src/BenchmarksView.tsx`, `bench.ts`; `backend/sources/benchmarks.py`).
-- **Next:** schedule the same suite on a cadence (via the supervisor) so the regression watch has history to diff, and add a metered-vs-notional cost split for local/Codex runs whose `cost_total` is 0.
+- Schedule the suite on a cadence so a regression watch has run history to diff each `(model, spec)` cell against.
+- Add a metered-vs-notional cost split for local/Codex runs whose `cost_total` is 0.
+- Extend the OpenRouter runner past single-shot with a minimal tool loop, so the agentic cost suite is reproducible with a bring-your-own key too.
+
+---
+
+## License
+
+Licensed under either [MIT](LICENSE-MIT) or [Apache-2.0](LICENSE-APACHE) at your
+option. Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md); by
+contributing you agree to the [CLA](docs/CLA.md).

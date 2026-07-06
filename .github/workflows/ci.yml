@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install
+      - name: Test
+        run: bun test
+      - name: Build
+        run: bun build harness/src/cli.ts --target=bun --outfile /tmp/modellab-cli.js
+
+  leak-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: No secrets
+        run: |
+          # Generic secret-indicator scan only. Maintainer-identity and
+          # stale-brand scrubbing runs in the private publish tooling before
+          # anything is pushed here; enumerating those identifiers in this
+          # public file would itself disclose them.
+          if grep -rniE 'BEGIN [A-Z ]*PRIVATE KEY|AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20}' \
+               --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.sandboxes .; then
+            echo "::error::leak guard found a private key or API token"
+            exit 1
+          fi
+          UPATH="/""Users/"
+          if grep -rInE "$UPATH" --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=.sandboxes .; then
+            echo "::error::leak guard found a raw absolute user path"
+            exit 1
+          fi
+          echo "leak guard clean"
