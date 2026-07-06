@@ -1,9 +1,13 @@
+# Internal runner (optional). Requires the private Pi observability stack; not
+# needed to reproduce published numbers — use config/openrouter.yaml for that.
+# Point MODELLAB_OBS_DIR at your obs install, e.g.:
+#   export MODELLAB_OBS_DIR=~/Workspace/.pi/observability
 obs:
-  db_path: ~/.pi/observability/db/obs.db
+  db_path: ${MODELLAB_OBS_DIR}/db/obs.db
   server_url: http://127.0.0.1:43190
   token: devtoken
   pool: benchmark
-  extension_path: ~/.pi/observability/extension/pi-observability.ts
+  extension_path: ${MODELLAB_OBS_DIR}/extension/pi-observability.ts
 pi_version: "0.80.3"
 prices:
   # An entry here OVERRIDES the provider-reported cost for that model (see

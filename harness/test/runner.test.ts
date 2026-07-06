@@ -35,7 +35,7 @@ test("agentic args keep tools enabled", () => {
 });
 
 test("obsExtensionPath emits -e immediately before path", () => {
-  const extPath = "~/.pi/observability/extension/pi-observability.ts";
+  const extPath = "/opt/pi/observability/extension/pi-observability.ts";
   const args = buildPiArgs({
     spec: base, model: "anthropic/claude-opus-4-8", tag: "bench:r:s1:m:1",
     pool: "benchmark", promptText: "hello world",

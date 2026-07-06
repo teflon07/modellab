@@ -1,6 +1,20 @@
 import { parse as parseYaml } from "yaml";
 import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
 import type { RunnerBackend } from "./types";
+
+/**
+ * Expand `${VAR}` env references and a leading `~` in a config path so the
+ * repo carries no machine-specific absolute paths. The internal pi runner
+ * points its obs paths at `${MODELLAB_OBS_DIR}/...`; an unset var expands to
+ * empty, yielding an invalid path that fails loudly rather than silently.
+ */
+export function expandPath(s: string): string {
+  const expanded = s.replace(/\$\{([A-Z0-9_]+)\}/gi, (_, name) => process.env[name] ?? "");
+  return expanded.startsWith("~/") || expanded === "~"
+    ? homedir() + expanded.slice(1)
+    : expanded;
+}
 
 export interface PriceEntry {
   input_per_mtok: number;
@@ -59,11 +73,11 @@ export function parseConfig(text: string): Config {
   return {
     runner,
     obs: {
-      db_path: String(raw.obs?.db_path ?? ""),
+      db_path: expandPath(String(raw.obs?.db_path ?? "")),
       server_url: String(raw.obs?.server_url ?? "http://127.0.0.1:43190"),
       token: String(raw.obs?.token ?? "devtoken"),
       pool: String(raw.obs?.pool ?? "benchmark"),
-      extension_path: raw.obs?.extension_path ? String(raw.obs.extension_path) : undefined,
+      extension_path: raw.obs?.extension_path ? expandPath(String(raw.obs.extension_path)) : undefined,
     },
     codex: {
       sandbox,
