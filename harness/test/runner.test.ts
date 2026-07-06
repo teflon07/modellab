@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildCodexArgs, buildPiArgs, collectCodexMetrics } from "../src/runner";
+import { buildCodexArgs, buildPiArgs, collectCodexMetrics, buildOpenRouterBody, collectOpenRouterMetrics } from "../src/runner";
 import type { Spec } from "../src/types";
 
 const base: Spec = {
@@ -120,4 +120,47 @@ test("collectCodexMetrics parses final message and token usage", () => {
   expect(out.metrics.toolCalls).toBe(1);
   expect(out.metrics.turns).toBe(1);
   expect(out.metrics.costTotal).toBe(0);
+});
+
+test("openrouter body requests inline usage and single user message", () => {
+  const body = buildOpenRouterBody("anthropic/claude-sonnet-5", "solve this", "high") as any;
+  expect(body.model).toBe("anthropic/claude-sonnet-5");
+  expect(body.messages).toEqual([{ role: "user", content: "solve this" }]);
+  expect(body.usage).toEqual({ include: true });
+  expect(body.reasoning).toEqual({ effort: "high" });
+});
+
+test("openrouter body omits reasoning when no effort given", () => {
+  const body = buildOpenRouterBody("openai/gpt-5.5", "hi") as any;
+  expect(body.reasoning).toBeUndefined();
+});
+
+test("openrouter metrics map usage fields and count one turn", () => {
+  const m = collectOpenRouterMetrics(
+    {
+      prompt_tokens: 100,
+      completion_tokens: 25,
+      total_tokens: 125,
+      cost: 0.0042,
+      prompt_tokens_details: { cached_tokens: 40 },
+    },
+    "sess1",
+    1234,
+    false,
+  );
+  expect(m.inputTokens).toBe(100);
+  expect(m.outputTokens).toBe(25);
+  expect(m.totalTokens).toBe(125);
+  expect(m.cacheRead).toBe(40);
+  expect(m.costTotal).toBeCloseTo(0.0042);
+  expect(m.turns).toBe(1);
+  expect(m.wallClockMs).toBe(1234);
+  expect(m.errorCount).toBe(0);
+});
+
+test("openrouter metrics fall back to input+output and flag failures", () => {
+  const m = collectOpenRouterMetrics({ prompt_tokens: 10, completion_tokens: 5 }, "sess2", 50, true);
+  expect(m.totalTokens).toBe(15);
+  expect(m.costTotal).toBe(0);
+  expect(m.errorCount).toBe(1);
 });

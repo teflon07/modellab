@@ -1,0 +1,27 @@
+# Bring-your-own-key reproduce path. Runs the single-shot capability probes
+# (maze-*, logic-grid, arc-lite, planning) against any model on OpenRouter using
+# your own API key. This is the config an outside reader uses to reproduce the
+# published faculty numbers.
+#
+# Usage:
+#   export OPENROUTER_API_KEY=sk-or-...
+#   bun run bench --config config/openrouter.yaml \
+#     --models anthropic/claude-sonnet-5,openai/gpt-5.5 --run-id repro1
+#
+# Pass real OpenRouter model slugs via --models (the spec defaults use internal
+# aliases). Agentic coding specs are skipped automatically — OpenRouter has no
+# tool loop; use the codex config for those.
+runner: openrouter
+openrouter:
+  base_url: https://openrouter.ai/api/v1
+  api_key_env: OPENROUTER_API_KEY
+  # Optional attribution headers shown on OpenRouter's activity page. Safe to omit.
+  # referer: https://github.com/OWNER/modellab
+  # title: modellab
+  effort: high
+  # Judge model for judge-scored specs (the faculty probes are programmatic, so
+  # this is only used if you run judge-scored specs through OpenRouter).
+  judge_model: anthropic/claude-sonnet-5
+# OpenRouter reports real cost in its usage payload, so cost-per-success works
+# with no local price table. Add entries here only to override.
+prices: {}
