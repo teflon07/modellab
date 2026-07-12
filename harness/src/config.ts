@@ -5,9 +5,10 @@ import type { RunnerBackend } from "./types";
 
 /**
  * Expand `${VAR}` env references and a leading `~` in a config path so the
- * repo carries no machine-specific absolute paths. The internal pi runner
- * points its obs paths at `${MODELLAB_OBS_DIR}/...`; an unset var expands to
- * empty, yielding an invalid path that fails loudly rather than silently.
+ * repo carries no machine-specific absolute paths. The internal Pi runner
+ * uses `${MODELLAB_OBS_SOURCE}` for extension source and `${MODELLAB_OBS_DB}`
+ * for runtime state; an unset var expands to empty, yielding an invalid path
+ * that fails loudly rather than silently.
  */
 export function expandPath(s: string): string {
   const expanded = s.replace(/\$\{([A-Z0-9_]+)\}/gi, (_, name) => process.env[name] ?? "");
