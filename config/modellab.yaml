@@ -1,13 +1,14 @@
 # Optional local observability runner; not needed to reproduce published
 # numbers. Use config/openrouter.yaml for the public, API-key-based path.
-# Point MODELLAB_OBS_DIR at an observability install, e.g.:
-#   export MODELLAB_OBS_DIR=/path/to/observability
+# Point the source and runtime variables at the observability install, e.g.:
+#   export MODELLAB_OBS_SOURCE=/path/to/automation/observability
+#   export MODELLAB_OBS_DB=~/.local/share/workspace-observability/obs.db
 obs:
-  db_path: ${MODELLAB_OBS_DIR}/db/obs.db
+  db_path: ${MODELLAB_OBS_DB}
   server_url: http://127.0.0.1:43190
   token: devtoken
   pool: benchmark
-  extension_path: ${MODELLAB_OBS_DIR}/extension/pi-observability.ts
+  extension_path: ${MODELLAB_OBS_SOURCE}/extension/pi-observability.ts
 pi_version: "0.80.3"
 prices:
   # An entry here OVERRIDES the provider-reported cost for that model (see
