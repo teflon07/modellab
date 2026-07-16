@@ -200,7 +200,7 @@ async function main(): Promise<void> {
         : await runOne({
           spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
           promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
-          obsExtensionPath: cfg.obs.extension_path,
+          obsExtensionPath: cfg.obs.extension_path, thinking: cfg.pi.thinking,
         });
 
       let metrics: CollectedMetrics | null = "metrics" in run ? (run.metrics as CollectedMetrics) : null;
@@ -258,7 +258,7 @@ async function main(): Promise<void> {
                 spec: { ...p.spec, mode: "single_shot" }, model,
                 tag: `${tag}:judge`, pool: cfg.obs.pool, promptText: prompt,
                 cwd: root, timeoutMs: 120_000, env,
-                obsExtensionPath: cfg.obs.extension_path,
+                obsExtensionPath: cfg.obs.extension_path, thinking: cfg.pi.thinking,
               });
             return j.stdout;
           },

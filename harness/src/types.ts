@@ -1,9 +1,15 @@
 export type Track = "frontier" | "local" | "crossover";
 export type Mode = "single_shot" | "agentic";
 export type RunnerBackend = "pi" | "codex" | "claude" | "openrouter";
+export const PI_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
+export type PiThinkingLevel = (typeof PI_THINKING_LEVELS)[number];
 
 export function isTrack(x: string): x is Track {
   return x === "frontier" || x === "local" || x === "crossover";
+}
+
+export function isPiThinkingLevel(value: string): value is PiThinkingLevel {
+  return PI_THINKING_LEVELS.includes(value as PiThinkingLevel);
 }
 
 export interface Fixture {

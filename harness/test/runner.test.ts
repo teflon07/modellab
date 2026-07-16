@@ -24,6 +24,24 @@ test("single-shot args disable tools, context files, and session", () => {
   expect(args[args.length - 1]).toBe("hello world");
 });
 
+test("Pi args carry the configured thinking level", () => {
+  const args = buildPiArgs({
+    spec: base, model: "openai/gpt-test", tag: "bench:r:s1:m:1",
+    pool: "benchmark", promptText: "hello world", thinking: "high",
+  });
+  const index = args.indexOf("--thinking");
+  expect(index).toBeGreaterThanOrEqual(0);
+  expect(args[index + 1]).toBe("high");
+});
+
+test("Pi args omit thinking when it is not configured", () => {
+  const args = buildPiArgs({
+    spec: base, model: "openai/gpt-test", tag: "bench:r:s1:m:1",
+    pool: "benchmark", promptText: "hello world",
+  });
+  expect(args).not.toContain("--thinking");
+});
+
 test("agentic args keep tools enabled", () => {
   const spec: Spec = { ...base, mode: "agentic", fixture: { repo: "fixtures/x", setup: [], verify: ["true"] } };
   const args = buildPiArgs({

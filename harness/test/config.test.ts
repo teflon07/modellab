@@ -31,13 +31,25 @@ obs:
   token: devtoken
   pool: benchmark
 pi_version: "1.2.3"
+pi:
+  thinking: high
 prices:
   "anthropic/claude-opus-4-8": { input_per_mtok: 15, output_per_mtok: 75 }
 `);
   expect(cfg.runner).toBe("pi");
   expect(cfg.obs.db_path).toBe("/tmp/obs.db");
   expect(cfg.obs.pool).toBe("benchmark");
+  expect(cfg.pi.thinking).toBe("high");
   expect(cfg.prices["anthropic/claude-opus-4-8"]!.input_per_mtok).toBe(15);
+});
+
+test("parseConfig rejects an unsupported Pi thinking level", () => {
+  expect(() => parseConfig(`
+obs:
+  db_path: /tmp/obs.db
+pi:
+  thinking: extreme
+`)).toThrow(/pi\.thinking/);
 });
 
 test("parseConfig throws when obs.db_path is missing", () => {

@@ -1,4 +1,4 @@
-import type { CollectedMetrics, Spec } from "./types";
+import type { CollectedMetrics, PiThinkingLevel, Spec } from "./types";
 
 export interface BuildArgsOpts {
   spec: Spec;
@@ -7,10 +7,11 @@ export interface BuildArgsOpts {
   pool: string;
   promptText: string;
   obsExtensionPath?: string;
+  thinking?: PiThinkingLevel;
 }
 
 export function buildPiArgs(opts: BuildArgsOpts): string[] {
-  const { spec, model, tag, pool, promptText, obsExtensionPath } = opts;
+  const { spec, model, tag, pool, promptText, obsExtensionPath, thinking } = opts;
   const args: string[] = [];
   if (obsExtensionPath) {
     args.push("-e", obsExtensionPath);
@@ -25,6 +26,7 @@ export function buildPiArgs(opts: BuildArgsOpts): string[] {
     "--o-name", `${spec.id}/${model}`,
     "--model", model,
   );
+  if (thinking) args.push("--thinking", thinking);
   if (spec.mode === "single_shot") {
     args.push("--no-tools", "--no-session");
   }
