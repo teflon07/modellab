@@ -14,6 +14,7 @@ export function collectByTag(dbPath: string, tag: string): CollectedMetrics | nu
       SELECT session_id, first_ts, last_ts
       FROM sessions
       WHERE EXISTS (SELECT 1 FROM json_each(tags_json) WHERE value = $tag)
+      ORDER BY last_ts DESC
       LIMIT 1
     `).get({ $tag: tag }) as { session_id: string; first_ts: string; last_ts: string } | null;
     if (!session) return null;

@@ -9,7 +9,7 @@ obs:
   token: devtoken
   pool: benchmark
   extension_path: ${MODELLAB_OBS_SOURCE}/extension/pi-observability.ts
-pi_version: "0.80.3"
+pi_version: "0.80.7"
 pi:
   # Every Pi benchmark uses the same deliberate reasoning budget. This is
   # forwarded verbatim as `pi --thinking high`, including judge calls.

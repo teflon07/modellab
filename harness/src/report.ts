@@ -4,6 +4,7 @@ export interface ReportMeta {
   runId: string;
   generatedAt: string;
   piVersion: string;
+  campaignFingerprint: string;
 }
 
 const TRACKS: Track[] = ["frontier", "local", "crossover"];

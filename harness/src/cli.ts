@@ -1,18 +1,25 @@
 #!/usr/bin/env bun
+import { randomUUID } from "node:crypto";
 import { parseArgs } from "node:util";
-import { mkdirSync, writeFileSync, readFileSync, appendFileSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, priceOverride } from "./config";
 import { loadSpecs, resolvePrompt } from "./spec";
 import { buildRunTag } from "./tag";
-import { runOne, runOneCodex, runOneClaude, runOneOpenRouter } from "./runner";
+import { detectRunnerVersion, runOne, runOneCodex, runOneClaude, runOneOpenRouter } from "./runner";
 import { collectByTag } from "./collector";
 import { scoreProgrammatic, scoreJudge } from "./scorer";
 import { provisionSandbox, teardownSandbox } from "./sandbox";
-import { summarize } from "./aggregate";
-import { renderMarkdown, renderCsv, renderJson } from "./report";
 import { checkObsHealth } from "./obs";
+import {
+  campaignFingerprint,
+  digestPath,
+  initializeOutputs,
+  loadCheckpoint,
+  reconcileOutputs,
+  writeCheckpoint,
+} from "./checkpoint";
 import type { Spec, RunResult, CollectedMetrics } from "./types";
 
 export interface PlannedRun {
@@ -43,6 +50,61 @@ export function planRuns(
   return plan;
 }
 
+function runIdentity(run: Pick<PlannedRun, "spec" | "model" | "rep">): string {
+  return `${run.spec.id}\0${run.model}\0${run.rep}`;
+}
+
+export function skipCompletedRuns(plan: PlannedRun[], completed: RunResult[]): PlannedRun[] {
+  const identities = new Set(completed.map((run) => `${run.specId}\0${run.model}\0${run.rep}`));
+  return plan.filter((run) => !identities.has(runIdentity(run)));
+}
+
+export function unfinishedRuns(plan: PlannedRun[], results: RunResult[]): PlannedRun[] {
+  return skipCompletedRuns(plan, results);
+}
+
+export function shouldRetryRun(
+  run: { exitCode: number; stderr: string; timedOut: boolean },
+  metrics: Pick<CollectedMetrics, "errorCount"> | null,
+): boolean {
+  if (run.timedOut) return false;
+  return run.exitCode !== 0 || metrics === null || metrics.errorCount > 0;
+}
+
+export function requireJudgeOutput(
+  run: {
+    exitCode: number;
+    stderr: string;
+    timedOut: boolean;
+    stdout: string;
+    metrics?: Pick<CollectedMetrics, "errorCount">;
+  },
+): string {
+  if (run.exitCode !== 0 || run.timedOut || !run.stdout.trim() || (run.metrics?.errorCount ?? 0) > 0) {
+    const detail = run.timedOut ? "timed out" : run.stderr.replace(/\s+/g, " ").trim().slice(0, 300) || `exit ${run.exitCode}`;
+    throw new Error(`judge runner failed: ${detail}`);
+  }
+  return run.stdout;
+}
+
+export function persistRunResult(
+  results: RunResult[],
+  result: RunResult,
+  outputsPath: string,
+  output: string,
+  checkpoint: () => void,
+): void {
+  appendFileSync(outputsPath, JSON.stringify({
+    runId: result.runId,
+    specId: result.specId,
+    model: result.model,
+    rep: result.rep,
+    output,
+  }) + "\n");
+  results.push(result);
+  checkpoint();
+}
+
 function repoRoot(): string {
   // harness/src/cli.ts -> repo root is two levels up
   return resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -59,6 +121,7 @@ async function main(): Promise<void> {
   }
   const root = repoRoot();
   const cfg = loadConfig(resolve(root, values.config ?? "config/modellab.yaml"));
+  const piVersion = detectRunnerVersion(cfg.runner, cfg.pi_version);
   const runId = values["run-id"] ?? `run-${new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)}`;
 
   if (cfg.runner === "pi" && !(await checkObsHealth(cfg.obs.server_url, cfg.obs.token))) {
@@ -130,24 +193,66 @@ async function main(): Promise<void> {
   };
   const env = cfg.runner === "pi" ? obsEnv : {};
 
-  const results: RunResult[] = [];
-  const meta = { runId, generatedAt: new Date().toISOString(), piVersion: cfg.pi_version };
+  const scheduledPlan = plan;
+  const fingerprint = campaignFingerprint({
+    runner: cfg.runner,
+    piVersion,
+    settings: cfg.runner === "pi"
+      ? { thinking: cfg.pi.thinking }
+      : cfg.runner === "codex"
+      ? cfg.codex
+      : cfg.runner === "claude"
+      ? cfg.claude
+      : {
+        baseUrl: cfg.openrouter.base_url,
+        effort: cfg.openrouter.effort,
+        judgeModel: cfg.openrouter.judge_model,
+      },
+    prices: cfg.prices,
+    sources: specs.map(({ path, spec }) => ({
+      specId: spec.id,
+      promptFile: spec.prompt_file ? digestPath(resolve(dirname(path), spec.prompt_file)) : undefined,
+      rubric: spec.scoring.kind === "judge" ? digestPath(resolve(root, spec.scoring.rubric_file)) : undefined,
+      fixture: spec.fixture ? digestPath(resolve(root, spec.fixture.repo)) : undefined,
+    })),
+    plan: scheduledPlan.map((run) => ({ spec: run.spec, model: run.model, rep: run.rep })),
+  });
+  let results: RunResult[] = [];
+  let generatedAt = new Date().toISOString();
   const outDir = resolve(root, "results", runId);
-  mkdirSync(outDir, { recursive: true });
+  const resultsPath = resolve(outDir, "results.json");
+  const checkpointExists = existsSync(resultsPath);
+  if (checkpointExists) {
+    const checkpoint = loadCheckpoint(
+      resultsPath,
+      fingerprint,
+      scheduledPlan.map((run) => ({ specId: run.spec.id, model: run.model, rep: run.rep })),
+      runId,
+    );
+    results = checkpoint.results;
+    generatedAt = checkpoint.generatedAt;
+    plan = skipCompletedRuns(scheduledPlan, results);
+    console.error(`[resume] loaded ${results.length} completed run(s); ${plan.length} remain`);
+  }
+  const meta = {
+    runId,
+    generatedAt,
+    piVersion,
+    campaignFingerprint: fingerprint,
+  };
   const outputsPath = resolve(outDir, "outputs.jsonl");
-  writeFileSync(outputsPath, "");
+  initializeOutputs(outputsPath);
+  reconcileOutputs(outputsPath, results, checkpointExists);
   // Checkpoint after every rep so a run is crash-safe and readable mid-flight: a
   // killed run keeps every completed rep, and a batched run shows live progress
   // instead of nothing-until-the-end. Metrics/verdict go to results.*; the raw
   // model text is appended per rep to outputs.jsonl.
   const checkpoint = () => {
-    const summaries = summarize(results, specs.map((s) => s.spec));
-    writeFileSync(resolve(outDir, "report.md"), renderMarkdown(summaries, meta));
-    writeFileSync(resolve(outDir, "results.csv"), renderCsv(summaries));
-    writeFileSync(resolve(outDir, "results.json"), renderJson(summaries, results, meta));
+    writeCheckpoint(outDir, results, specs.map((s) => s.spec), meta);
   };
+  checkpoint();
   for (const p of plan) {
-    const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
+    const tag = buildRunTag(runId, p.spec.id, p.model, p.rep, randomUUID());
     let sandbox: Awaited<ReturnType<typeof provisionSandbox>> | null = null;
     try {
       let sandboxCwd = root;
@@ -210,6 +315,11 @@ async function main(): Promise<void> {
         metrics = collectByTag(cfg.obs.db_path, tag);
       }
 
+      if (shouldRetryRun(run, metrics)) {
+        console.error(`[retryable] ${tag}: infrastructure or telemetry failure; checkpoint preserved for resume`);
+        break;
+      }
+
       let score = { pass: false, score: null as number | null };
       if (run.exitCode !== 0 || run.timedOut) {
         score = { pass: false, score: 0 };
@@ -260,7 +370,7 @@ async function main(): Promise<void> {
                 cwd: root, timeoutMs: 120_000, env,
                 obsExtensionPath: cfg.obs.extension_path, thinking: cfg.pi.thinking,
               });
-            return j.stdout;
+            return requireJudgeOutput(j);
           },
         });
       }
@@ -268,20 +378,29 @@ async function main(): Promise<void> {
       if (metrics) {
         const priced = priceOverride(cfg.prices, p.model, metrics);
         if (priced != null) metrics.costTotal = priced;
-        results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score, timedOut: run.timedOut });
-        appendFileSync(outputsPath, JSON.stringify({ runId, specId: p.spec.id, model: p.model, rep: p.rep, output: run.stdout }) + "\n");
-        checkpoint();
+        const result: RunResult = {
+          runId, specId: p.spec.id, model: p.model, rep: p.rep,
+          ...metrics, pass: score.pass, score: score.score, timedOut: run.timedOut,
+        };
+        persistRunResult(results, result, outputsPath, run.stdout, checkpoint);
       } else {
         console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
       }
     } catch (err) {
       console.error(`[error] ${tag}: ${err}`);
+      break;
     } finally {
       if (sandbox) await teardownSandbox(sandbox);
     }
   }
 
   checkpoint();
+  const unfinished = unfinishedRuns(scheduledPlan, results);
+  if (unfinished.length) {
+    process.exitCode = 1;
+    console.error(`[incomplete] ${unfinished.length} run(s) remain; rerun with --run-id ${runId} to resume`);
+    return;
+  }
   console.error(`[done] wrote results to ${outDir}`);
 }
 

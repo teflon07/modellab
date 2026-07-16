@@ -94,7 +94,7 @@ export function isPiThinkingLevel(value: string): value is PiThinkingLevel {
 }
 ```
 
-Use `PiThinkingLevel` in `Config.pi` and `BuildArgsOpts`, validate through `isPiThinkingLevel()`, pass `cfg.pi.thinking` to both primary Pi calls and Pi judge calls, and add `pi.thinking: high` to `config/modellab.yaml` without changing its public-facing runner description.
+Use `PiThinkingLevel` in `Config.pi` and `BuildArgsOpts`, validate through `isPiThinkingLevel()`, pass `cfg.pi.thinking` to both primary Pi calls and Pi judge calls, and add `pi.thinking: high` to `config/modellab.yaml` without changing its public-facing runner description. Verify the active runner's installed version before a campaign starts, including the configured Pi reproducibility pin.
 
 - [ ] **Step 4: Verify GREEN and run the full suite**
 
@@ -122,7 +122,13 @@ git commit -m "feat: configure Pi benchmark thinking"
 - Create: `harness/test/checkpoint.test.ts`
 - Modify: `harness/src/report.ts`
 - Modify: `harness/src/cli.ts`
+- Modify: `harness/src/runner.ts`
+- Modify: `harness/src/collector.ts`
+- Modify: `harness/src/tag.ts`
+- Modify: `scripts/fanout.ts`
 - Modify: `harness/test/cli.test.ts`
+- Modify: `harness/test/fanout.test.ts`
+- Modify: `harness/test/tag.test.ts`
 
 - [ ] **Step 1: Write failing checkpoint tests**
 
@@ -175,9 +181,9 @@ export function initializeOutputs(path: string): void;
 export function writeCheckpoint(outDir: string, results: RunResult[], specs: Spec[], meta: ReportMeta): void;
 ```
 
-`campaignFingerprint()` uses SHA-256 over deterministic JSON containing the runner, runner reasoning settings, Pi version, and the full selected spec/model/rep plan, never credentials or absolute paths. `loadCheckpoint()` rejects malformed metadata, missing fingerprints, mismatches, malformed run identities, and duplicate `(specId, model, rep)` tuples. `writeCheckpoint()` writes report, CSV, JSON, and heartbeat from the same result array.
+`campaignFingerprint()` uses SHA-256 over deterministic JSON containing the runner, runner reasoning settings, verified Pi version, referenced-input content digests, and the full selected spec/model/rep plan, never credentials or absolute paths. `loadCheckpoint()` rejects malformed metadata and results, missing fingerprints, mismatches, runs outside the scheduled plan, run-ID drift, and duplicate `(specId, model, rep)` tuples. `writeCheckpoint()` writes report, CSV, JSON, and heartbeat from the same result array.
 
-In `harness/src/cli.ts`, compute the fingerprint before loading results; preserve the original `generatedAt` on resume; initialize outputs without truncation; checkpoint after every metered result; stop on retryable infrastructure failures; and exit nonzero when any scheduled tuple lacks a durable checkpoint.
+In `harness/src/cli.ts`, compute the fingerprint before loading results; preserve the original `generatedAt` on resume; initialize and reconcile raw outputs without truncating durable records; use an attempt-unique observability tag so retries cannot collect stale telemetry; checkpoint after every metered result; stop on primary or judge infrastructure failures; and exit nonzero when any scheduled tuple lacks a durable checkpoint. Fanout must refuse to combine failed, missing, or unidentified child reports and must derive its combined identity from the validated child fingerprints.
 
 - [ ] **Step 4: Verify GREEN and the complete contract**
 
@@ -195,7 +201,7 @@ Expected: all tests pass, build exits 0, and the diff check is clean.
 - [ ] **Step 5: Commit**
 
 ```sh
-git add harness/src/checkpoint.ts harness/test/checkpoint.test.ts harness/src/report.ts harness/src/cli.ts harness/test/cli.test.ts
+git add config/modellab.yaml harness/src/checkpoint.ts harness/test/checkpoint.test.ts harness/src/report.ts harness/src/runner.ts harness/src/cli.ts harness/test/cli.test.ts harness/test/fanout.test.ts harness/test/report.test.ts scripts/fanout.ts
 git commit -m "feat: resume benchmark runs from durable checkpoints"
 ```
 
@@ -210,7 +216,7 @@ Run:
 
 ```sh
 git diff --name-status origin/main...HEAD
-grep -rInE '/''Users/|com\.stephenedwards|Dock Files' --exclude-dir=.git --exclude-dir=node_modules .
+grep -rInE '/''Users/|com\.stephen''edwards|Dock'' Files' --exclude=.git --exclude-dir=.git --exclude-dir=node_modules .
 git status --short --branch
 ```
 

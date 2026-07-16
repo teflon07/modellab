@@ -1,4 +1,37 @@
-import type { CollectedMetrics, PiThinkingLevel, Spec } from "./types";
+import type { CollectedMetrics, PiThinkingLevel, RunnerBackend, Spec } from "./types";
+
+export function requirePiVersion(expected: string, actual: string): string {
+  const normalizedExpected = expected.trim().replace(/^v/, "");
+  const normalizedActual = actual.trim().replace(/^v/, "");
+  if (!normalizedActual || normalizedActual !== normalizedExpected) {
+    throw new Error(`Pi version mismatch: config pins ${expected}, installed runtime is ${actual || "unavailable"}`);
+  }
+  return normalizedActual;
+}
+
+export function detectPiVersion(expected: string): string {
+  const result = Bun.spawnSync(["pi", "--version"], { stdout: "pipe", stderr: "pipe" });
+  if (result.exitCode !== 0) {
+    throw new Error(`Pi version check failed: ${result.stderr.toString().trim() || `exit ${result.exitCode}`}`);
+  }
+  return requirePiVersion(expected, result.stdout.toString().trim());
+}
+
+function detectCommandVersion(command: string): string {
+  const result = Bun.spawnSync([command, "--version"], { stdout: "pipe", stderr: "pipe" });
+  const version = result.stdout.toString().trim();
+  if (result.exitCode !== 0 || !version) {
+    throw new Error(`${command} version check failed: ${result.stderr.toString().trim() || `exit ${result.exitCode}`}`);
+  }
+  return version;
+}
+
+export function detectRunnerVersion(runner: RunnerBackend, configuredPiVersion: string): string {
+  if (runner === "pi") return detectPiVersion(configuredPiVersion);
+  if (runner === "codex") return detectCommandVersion("codex");
+  if (runner === "claude") return detectCommandVersion("claude");
+  return "openrouter-api";
+}
 
 export interface BuildArgsOpts {
   spec: Spec;

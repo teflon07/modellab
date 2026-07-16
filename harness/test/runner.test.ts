@@ -1,5 +1,5 @@
 import { test, expect } from "bun:test";
-import { buildCodexArgs, buildPiArgs, collectCodexMetrics, buildOpenRouterBody, collectOpenRouterMetrics, buildClaudeArgs, collectClaudeMetrics } from "../src/runner";
+import { buildCodexArgs, buildPiArgs, collectCodexMetrics, buildOpenRouterBody, collectOpenRouterMetrics, buildClaudeArgs, collectClaudeMetrics, requirePiVersion } from "../src/runner";
 import type { Spec } from "../src/types";
 
 const base: Spec = {
@@ -40,6 +40,11 @@ test("Pi args omit thinking when it is not configured", () => {
     pool: "benchmark", promptText: "hello world",
   });
   expect(args).not.toContain("--thinking");
+});
+
+test("Pi runtime version must match the reproducibility pin", () => {
+  expect(requirePiVersion("0.80.7", "0.80.7")).toBe("0.80.7");
+  expect(() => requirePiVersion("0.80.3", "0.80.7")).toThrow(/Pi version mismatch/);
 });
 
 test("agentic args keep tools enabled", () => {

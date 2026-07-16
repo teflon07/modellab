@@ -18,3 +18,10 @@ test("parseRunTag rejects non-bench tags", () => {
   expect(parseRunTag("pilot")).toBeNull();
   expect(parseRunTag("bench:a:b")).toBeNull();
 });
+
+test("attempt-qualified tags stay parseable and isolate retry telemetry", () => {
+  const first = buildRunTag("run123", "s1", "m1", 1, "attempt-a");
+  const second = buildRunTag("run123", "s1", "m1", 1, "attempt-b");
+  expect(first).not.toBe(second);
+  expect(parseRunTag(first)).toMatchObject({ runId: "run123", specId: "s1", rep: 1, attemptId: "attempt-a" });
+});

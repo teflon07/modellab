@@ -35,7 +35,12 @@ const unmetered: CellSummary = {
   costPerSuccess: 0, tokensPerSuccess: 300,
 };
 
-const meta = { runId: "r1", generatedAt: "2026-06-06T12:00:00Z", piVersion: "1.2.3" };
+const meta = {
+  runId: "r1",
+  generatedAt: "2026-06-06T12:00:00Z",
+  piVersion: "1.2.3",
+  campaignFingerprint: "test-fingerprint",
+};
 
 test("markdown groups by track and lists the model row", () => {
   const md = renderMarkdown(cells, meta);

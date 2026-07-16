@@ -14,6 +14,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderMarkdown, renderCsv, renderJson } from "../harness/src/report";
+import { campaignFingerprint, isValidRunResult } from "../harness/src/checkpoint";
 import type { CellSummary, RunResult } from "../harness/src/types";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -31,19 +32,73 @@ export function partition(models: string[]): { api: string[]; local: string[] } 
   return { api: models.filter((m) => !isLocal(m)), local: models.filter(isLocal) };
 }
 
+function finite(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function validDistribution(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  const distribution = value as Record<string, unknown>;
+  return ["median", "min", "max", "stdev", "cv"].every((key) => finite(distribution[key]));
+}
+
+function validSummary(value: unknown): value is CellSummary {
+  if (!value || typeof value !== "object") return false;
+  const summary = value as Partial<CellSummary>;
+  const distributions = [
+    summary.tokens, summary.cost, summary.cacheHitRatio, summary.turns,
+    summary.toolCalls, summary.wallClockMs, summary.ttftMs, summary.outputTps,
+    summary.peakContext,
+  ];
+  return (
+    (summary.track === "frontier" || summary.track === "local" || summary.track === "crossover") &&
+    typeof summary.specId === "string" && !!summary.specId &&
+    typeof summary.model === "string" && !!summary.model &&
+    Number.isInteger(summary.n) && (summary.n ?? 0) > 0 &&
+    Number.isInteger(summary.completed) && (summary.completed ?? -1) >= 0 &&
+    Number.isInteger(summary.timeouts) && (summary.timeouts ?? -1) >= 0 &&
+    finite(summary.passRate) &&
+    !!summary.passRateCI && finite(summary.passRateCI.low) && finite(summary.passRateCI.high) &&
+    typeof summary.metered === "boolean" &&
+    distributions.every(validDistribution) &&
+    (summary.costPerSuccess === null || finite(summary.costPerSuccess)) &&
+    (summary.tokensPerSuccess === null || finite(summary.tokensPerSuccess))
+  );
+}
+
 /** Merge per-run results.json objects into one combined {summaries, runs, piVersion}. */
 export function mergeReports(
-  reports: Array<{ summaries?: CellSummary[]; runs?: RunResult[]; meta?: { piVersion?: string } }>,
-): { summaries: CellSummary[]; runs: RunResult[]; piVersion: string } {
+  reports: Array<{
+    summaries?: CellSummary[];
+    runs?: RunResult[];
+    meta?: { runId?: string; generatedAt?: string; piVersion?: string; campaignFingerprint?: string };
+  }>,
+): { summaries: CellSummary[]; runs: RunResult[]; piVersion: string; childFingerprints: string[] } {
   const summaries: CellSummary[] = [];
   const runs: RunResult[] = [];
   let piVersion = "";
+  const childFingerprints: string[] = [];
   for (const r of reports) {
-    if (r.summaries) summaries.push(...r.summaries);
-    if (r.runs) runs.push(...r.runs);
-    if (r.meta?.piVersion) piVersion = r.meta.piVersion;
+    if (!Array.isArray(r.summaries) || !Array.isArray(r.runs)) {
+      throw new Error("fanout child report must contain summaries and runs arrays");
+    }
+    if (!r.meta?.runId || !r.meta.generatedAt || !r.meta.piVersion || !r.meta.campaignFingerprint) {
+      throw new Error("fanout child report has incomplete metadata");
+    }
+    if (!r.summaries.length || !r.runs.length) throw new Error("fanout child report is empty");
+    if (!r.summaries.every(validSummary)) throw new Error("fanout child report has an invalid summary");
+    if (!r.runs.every((run) => isValidRunResult(run) && run.runId === r.meta!.runId)) {
+      throw new Error("fanout child report has an invalid run result");
+    }
+    if (piVersion && r.meta.piVersion && r.meta.piVersion !== piVersion) {
+      throw new Error(`fanout child Pi version mismatch: ${piVersion} versus ${r.meta.piVersion}`);
+    }
+    summaries.push(...r.summaries);
+    runs.push(...r.runs);
+    piVersion = r.meta.piVersion;
+    childFingerprints.push(r.meta.campaignFingerprint);
   }
-  return { summaries, runs, piVersion };
+  return { summaries, runs, piVersion, childFingerprints };
 }
 
 async function main(): Promise<void> {
@@ -100,27 +155,45 @@ async function main(): Promise<void> {
   })();
   const [apiRes, localRes] = await Promise.all([apiP, localP]);
   const results = [...apiRes, ...localRes];
+  const failed = results.filter((r) => r.code !== 0).map((r) => r.model);
+  if (failed.length) {
+    console.error(`[fanout] child failure; combined report not written: ${failed.join(", ")}`);
+    process.exitCode = 1;
+    return;
+  }
 
   const reports = [];
   for (const { runId, code } of results) {
     const p = resolve(root, "results", runId, "results.json");
     if (!existsSync(p)) {
-      console.error(`[fanout] no results.json for ${runId} (exit ${code}) — skipping in merge`);
-      continue;
+      console.error(`[fanout] no results.json for ${runId} (exit ${code}); combined report not written`);
+      process.exitCode = 1;
+      return;
     }
     reports.push(JSON.parse(readFileSync(p, "utf8")));
   }
-  const { summaries, runs, piVersion } = mergeReports(reports);
-  const meta = { runId: `${prefix}-combined`, generatedAt: new Date().toISOString(), piVersion };
+  let merged: ReturnType<typeof mergeReports>;
+  try {
+    merged = mergeReports(reports);
+  } catch (error) {
+    console.error(`[fanout] invalid child report: ${error}`);
+    process.exitCode = 1;
+    return;
+  }
+  const { summaries, runs, piVersion, childFingerprints } = merged;
+  const meta = {
+    runId: `${prefix}-combined`,
+    generatedAt: new Date().toISOString(),
+    piVersion,
+    campaignFingerprint: campaignFingerprint({ kind: "fanout-combined", childFingerprints: [...childFingerprints].sort() }),
+  };
   const out = resolve(root, "results", `${prefix}-combined`);
   mkdirSync(out, { recursive: true });
   writeFileSync(resolve(out, "report.md"), renderMarkdown(summaries, meta));
   writeFileSync(resolve(out, "results.csv"), renderCsv(summaries));
   writeFileSync(resolve(out, "results.json"), renderJson(summaries, runs, meta));
 
-  const failed = results.filter((r) => r.code !== 0).map((r) => r.model);
   console.error(`[fanout] combined report -> ${out}`);
-  if (failed.length) console.error(`[fanout] NOTE: non-zero exit for: ${failed.join(", ")}`);
 }
 
 if (import.meta.main) {
