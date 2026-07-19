@@ -37,6 +37,15 @@ bill. The crossover track reports the honest gap between the two on identical
 tasks, which is the most useful signal for deciding when paying for frontier
 inference is worth it.
 
+**Current coverage is uneven, and the local track is the thin one.** Of 29 specs,
+24 are frontier, 3 are crossover, and 2 are local. Local coverage today is a
+single model (`ollama/qwen3:1.7b`) served through Ollama; the runtime detection
+in `scripts/fanout.ts` keys off the `ollama/` prefix, so other local runtimes are
+not yet supported. Frontier coverage also leans heavily on one vendor. Expanding
+the local track across model families and size tiers, and adding a second local
+runtime, is the most useful contribution available right now — see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 The models benchmarked so far include **Claude** (Sonnet 5, Opus 4.8),
 **GPT-5.5**, **Fable 5**, **GLM 5.2**, and **Haiku 4.5**; see
 [`docs/TASKS.md`](docs/TASKS.md) for full per-model results.

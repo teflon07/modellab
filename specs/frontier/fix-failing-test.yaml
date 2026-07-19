@@ -4,7 +4,7 @@ mode: agentic
 prompt: |
   A unit test is failing in this project. Find the bug in the source and fix it
   so that `bun test` passes. Do not edit the test file.
-models: ["anthropic/claude-opus-4-8", "openai/gpt-4o"]   # fill with frontier models
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
 reps: 5
 timeout_s: 600
 scoring: { kind: programmatic }
