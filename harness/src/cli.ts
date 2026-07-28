@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { parseArgs } from "node:util";
-import { mkdirSync, writeFileSync, readFileSync, appendFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync, appendFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadConfig, priceOverride } from "./config";
@@ -41,6 +41,27 @@ export function planRuns(
     }
   }
   return plan;
+}
+
+/** Removes tasks already checkpointed in an earlier invocation of the same run. */
+export function skipCompletedRuns(plan: PlannedRun[], completed: RunResult[]): PlannedRun[] {
+  const seen = new Set(completed.map((r) => `${r.specId}\0${r.model}\0${r.rep}`));
+  return plan.filter((p) => !seen.has(`${p.spec.id}\0${p.model}\0${p.rep}`));
+}
+
+/** Returns scheduled reps that have not produced a durable result checkpoint. */
+export function unfinishedRuns(plan: PlannedRun[], results: RunResult[]): PlannedRun[] {
+  return skipCompletedRuns(plan, results);
+}
+
+/** Provider/auth failures are infrastructure pauses, not benchmark outcomes. */
+export function shouldRetryRun(
+  run: Pick<Awaited<ReturnType<typeof runOne>>, "exitCode" | "stderr" | "timedOut">,
+  hasMetrics: boolean,
+): boolean {
+  if (!hasMetrics) return true;
+  if (run.timedOut || run.exitCode === 0) return false;
+  return /\b(?:429|rate[ -]?limit|quota|oauth|unauthori[sz]ed|forbidden|authentication)\b/i.test(run.stderr);
 }
 
 function repoRoot(): string {
@@ -130,12 +151,36 @@ async function main(): Promise<void> {
   };
   const env = cfg.runner === "pi" ? obsEnv : {};
 
-  const results: RunResult[] = [];
   const meta = { runId, generatedAt: new Date().toISOString(), piVersion: cfg.pi_version };
   const outDir = resolve(root, "results", runId);
   mkdirSync(outDir, { recursive: true });
+  const resultsPath = resolve(outDir, "results.json");
+  let results: RunResult[] = [];
+  if (existsSync(resultsPath)) {
+    try {
+      const prior = JSON.parse(readFileSync(resultsPath, "utf8"));
+      if (!Array.isArray(prior.runs)) throw new Error("missing runs array");
+      results = prior.runs as RunResult[];
+      const before = plan.length;
+      plan = skipCompletedRuns(plan, results);
+      const skipped = before - plan.length;
+      if (skipped) console.error(`[resume] loaded ${results.length} completed result(s); skipping ${skipped} planned run(s)`);
+    } catch (err) {
+      throw new Error(`cannot resume ${runId}: invalid existing results.json (${err})`);
+    }
+  }
   const outputsPath = resolve(outDir, "outputs.jsonl");
-  writeFileSync(outputsPath, "");
+  if (!existsSync(outputsPath)) writeFileSync(outputsPath, "");
+  const heartbeatPath = resolve(outDir, "heartbeat.json");
+  const writeHeartbeat = () => {
+    const last = results.at(-1);
+    writeFileSync(heartbeatPath, JSON.stringify({
+      runId,
+      updatedAt: new Date().toISOString(),
+      completed: results.length,
+      last: last ? { specId: last.specId, model: last.model, rep: last.rep } : null,
+    }, null, 2) + "\n");
+  };
   // Checkpoint after every rep so a run is crash-safe and readable mid-flight: a
   // killed run keeps every completed rep, and a batched run shows live progress
   // instead of nothing-until-the-end. Metrics/verdict go to results.*; the raw
@@ -145,8 +190,11 @@ async function main(): Promise<void> {
     writeFileSync(resolve(outDir, "report.md"), renderMarkdown(summaries, meta));
     writeFileSync(resolve(outDir, "results.csv"), renderCsv(summaries));
     writeFileSync(resolve(outDir, "results.json"), renderJson(summaries, results, meta));
+    writeHeartbeat();
   };
-  for (const p of plan) {
+  writeHeartbeat();
+  const scheduledPlan = plan;
+  for (const p of scheduledPlan) {
     const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
     let sandbox: Awaited<ReturnType<typeof provisionSandbox>> | null = null;
     try {
@@ -200,7 +248,7 @@ async function main(): Promise<void> {
         : await runOne({
           spec: p.spec, model: p.model, tag, pool: cfg.obs.pool,
           promptText, cwd: sandboxCwd, timeoutMs: p.spec.timeout_s * 1000, env,
-          obsExtensionPath: cfg.obs.extension_path,
+          obsExtensionPath: cfg.obs.extension_path, thinking: cfg.pi.thinking,
         });
 
       let metrics: CollectedMetrics | null = "metrics" in run ? (run.metrics as CollectedMetrics) : null;
@@ -208,6 +256,11 @@ async function main(): Promise<void> {
         // Give the obs server a moment to ingest the session_shutdown event.
         await Bun.sleep(1500);
         metrics = collectByTag(cfg.obs.db_path, tag);
+      }
+
+      if (shouldRetryRun(run, metrics != null)) {
+        console.error(`[retryable] ${tag}: provider/auth failure or missing telemetry; preserving checkpoints and stopping for launchd retry`);
+        break;
       }
 
       let score = { pass: false, score: null as number | null };
@@ -258,7 +311,7 @@ async function main(): Promise<void> {
                 spec: { ...p.spec, mode: "single_shot" }, model,
                 tag: `${tag}:judge`, pool: cfg.obs.pool, promptText: prompt,
                 cwd: root, timeoutMs: 120_000, env,
-                obsExtensionPath: cfg.obs.extension_path,
+                obsExtensionPath: cfg.obs.extension_path, thinking: cfg.pi.thinking,
               });
             return j.stdout;
           },
@@ -282,6 +335,13 @@ async function main(): Promise<void> {
   }
 
   checkpoint();
+  const unfinished = unfinishedRuns(scheduledPlan, results);
+  if (unfinished.length) {
+    const sample = unfinished.slice(0, 5).map((p) => `${p.spec.id}#${p.rep}`).join(", ");
+    console.error(`[incomplete] ${unfinished.length} scheduled run(s) lack a durable checkpoint; launchd will retry them: ${sample}`);
+    process.exitCode = 1;
+    return;
+  }
   console.error(`[done] wrote results to ${outDir}`);
 }
 

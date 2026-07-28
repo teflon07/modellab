@@ -10,6 +10,10 @@ obs:
   pool: benchmark
   extension_path: ${MODELLAB_OBS_SOURCE}/extension/pi-observability.ts
 pi_version: "0.80.3"
+pi:
+  # Every Pi benchmark uses the same deliberate reasoning budget. This is
+  # forwarded verbatim as `pi --thinking high`, including judge calls.
+  thinking: high
 prices:
   # An entry here OVERRIDES the provider-reported cost for that model (see
   # priceOverride in harness/src/config.ts). Only list models pi prices wrong

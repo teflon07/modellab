@@ -5,9 +5,10 @@ import type { RunnerBackend } from "./types";
 
 /**
  * Expand `${VAR}` env references and a leading `~` in a config path so the
- * repo carries no machine-specific absolute paths. The internal pi runner
- * points its obs paths at `${MODELLAB_OBS_DIR}/...`; an unset var expands to
- * empty, yielding an invalid path that fails loudly rather than silently.
+ * repo carries no machine-specific absolute paths. The internal Pi runner
+ * uses `${MODELLAB_OBS_SOURCE}` for extension source and `${MODELLAB_OBS_DB}`
+ * for runtime state; an unset var expands to empty, yielding an invalid path
+ * that fails loudly rather than silently.
  */
 export function expandPath(s: string): string {
   const expanded = s.replace(/\$\{([A-Z0-9_]+)\}/gi, (_, name) => process.env[name] ?? "");
@@ -23,6 +24,10 @@ export interface PriceEntry {
 
 export interface Config {
   runner: RunnerBackend;
+  pi: {
+    /** Pi's reasoning/thinking level, forwarded as `pi --thinking <level>`. */
+    thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  };
   obs: {
     db_path: string;
     server_url: string;
@@ -60,6 +65,10 @@ export function parseConfig(text: string): Config {
     throw new Error("config: runner must be 'pi', 'codex', 'claude', or 'openrouter'");
   }
   if (runner === "pi" && !raw.obs?.db_path) throw new Error("config: obs.db_path is required");
+  const piThinking = raw.pi?.thinking === undefined ? undefined : String(raw.pi.thinking);
+  if (piThinking !== undefined && !["off", "minimal", "low", "medium", "high", "xhigh"].includes(piThinking)) {
+    throw new Error("config: pi.thinking must be off, minimal, low, medium, high, or xhigh");
+  }
   const prices: Record<string, PriceEntry> = {};
   for (const [k, v] of Object.entries(raw.prices ?? {})) {
     const e = v as any;
@@ -75,6 +84,9 @@ export function parseConfig(text: string): Config {
   }
   return {
     runner,
+    pi: {
+      thinking: piThinking as Config["pi"]["thinking"],
+    },
     obs: {
       db_path: expandPath(String(raw.obs?.db_path ?? "")),
       server_url: String(raw.obs?.server_url ?? "http://127.0.0.1:43190"),
