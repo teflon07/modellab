@@ -1,0 +1,13 @@
+id: atlas-interactive
+track: frontier
+mode: agentic
+prompt_file: ../../prompts/atlas-interactive.md
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 3
+timeout_s: 900
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/atlas-field
+  setup: []
+  verify: ["python3 verify.py 2"]
+tags: [visual, agentic, real-world, website]

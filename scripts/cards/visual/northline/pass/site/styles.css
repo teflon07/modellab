@@ -1,0 +1,85 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600&display=swap");
+
+:root {
+  --void: #0B0E12;
+  --amber: #F5A524;
+  --steel: #8B9BB4;
+  --signal: #E23B3B;
+  --ok: #3DDC97;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--void); color: var(--steel); }
+body { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+
+.shell { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
+.rail { border-right: 1px solid #1c2430; padding: 22px 18px; }
+.rail h1 {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--amber);
+  font-size: 1.1rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 20px;
+}
+.radio-log {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #9aa8bd;
+}
+.radio-log p { margin: 0 0 10px; }
+
+.main { padding: 22px 26px 48px; }
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.yard-clock {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  color: var(--amber);
+  font-size: 2rem;
+  border: 1px solid #2a3340;
+  padding: 8px 14px;
+}
+.status-pills { display: flex; gap: 8px; }
+.status-pills span {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  border: 1px solid #2a3340;
+}
+.status-pills .open { color: var(--signal); }
+.status-pills .hold { color: var(--amber); }
+.status-pills .clear { color: var(--ok); }
+
+.status-filter, .incident-sort { display: flex; gap: 8px; margin: 0 0 14px; flex-wrap: wrap; }
+button {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  background: transparent;
+  color: var(--steel);
+  border: 1px solid #2a3340;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+button.on { border-color: var(--amber); color: var(--amber); }
+
+.incident-board { width: 100%; border-collapse: collapse; }
+.incident-board th, .incident-board td {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #1c2430;
+  font-size: 13px;
+}
+.incident-board th { color: var(--amber); font-weight: 600; letter-spacing: 0.06em; }
+
+.crew-login { margin-top: 28px; max-width: 360px; }
+label { display: block; margin: 8px 0; font-size: 13px; }
+input { width: 100%; padding: 8px; background: #12171e; border: 1px solid #2a3340; color: #e8eef6; font: inherit; }
+.supervisor-panel { min-height: 48px; margin-top: 12px; color: var(--amber); }
+
+@media (max-width: 800px) { .shell { grid-template-columns: 1fr; } }

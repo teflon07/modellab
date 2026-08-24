@@ -1,0 +1,4 @@
+[
+  {"email": "ada@northline.test", "password": "signal-19", "name": "Ada Voss", "role": "dispatcher"},
+  {"email": "kim@northline.test", "password": "yard-7", "name": "Kim Rourke", "role": "supervisor"}
+]

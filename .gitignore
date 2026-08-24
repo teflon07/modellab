@@ -4,6 +4,7 @@ node_modules/
 .sandboxes/
 *.log
 scripts/cards/out/
+scripts/cards/visual/compare-demo/
 .DS_Store
 __pycache__/
 results/

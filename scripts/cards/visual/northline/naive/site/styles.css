@@ -1,0 +1,13 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap");
+body {
+  margin: 0;
+  font-family: Inter, system-ui, sans-serif;
+  color: #fff;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+}
+.hero { text-align: center; padding: 120px 24px 80px; }
+.cta { display: inline-block; background: #fff; color: #667eea; padding: 12px 20px; border-radius: 999px; text-decoration: none; }
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px; }
+.cards article { background: rgba(255,255,255,0.12); padding: 16px; border-radius: 16px; }
+form { max-width: 360px; margin: 0 auto 60px; display: grid; gap: 8px; }
+input, button { padding: 10px; border: 0; border-radius: 8px; }

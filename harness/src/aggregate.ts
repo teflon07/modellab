@@ -55,6 +55,8 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
     const passes = completed.filter((r) => r.pass);
     const sumCost = completed.reduce((a, r) => a + r.costTotal, 0);
     const sumTok = completed.reduce((a, r) => a + r.totalTokens, 0);
+    const sumWall = completed.reduce((a, r) => a + r.wallClockMs, 0);
+    const sumTurns = completed.reduce((a, r) => a + r.turns, 0);
     // Distributions over COMPLETED reps only, so timed-out (0-token, ceiling
     // wall) runs don't poison the medians — tokens/wall reflect real runs.
     const num = (f: (r: RunResult) => number) => completed.map(f);
@@ -78,10 +80,14 @@ export function summarize(results: RunResult[], specs: Spec[]): CellSummary[] {
       ttftMs: distribution(num((r) => r.ttftMs ?? 0)),
       outputTps: distribution(num((r) => r.outputTps ?? 0)),
       peakContext: distribution(num((r) => r.peakContext)),
-      // Amortized cost/tokens to obtain ONE success: spend over COMPLETED runs
-      // (failed + passed) divided by the number of passing runs. null if none passed.
+      score: distribution(num((r) => r.score ?? 0)),
+      // Amortized cost/tokens/wall/turns to obtain ONE success: spend over
+      // COMPLETED runs (failed + passed) divided by the number of passing runs.
+      // null if none passed.
       costPerSuccess: passes.length === 0 ? null : sumCost / passes.length,
       tokensPerSuccess: passes.length === 0 ? null : sumTok / passes.length,
+      wallPerSuccess: passes.length === 0 ? null : sumWall / passes.length,
+      turnsPerSuccess: passes.length === 0 ? null : sumTurns / passes.length,
     });
   }
   return out;

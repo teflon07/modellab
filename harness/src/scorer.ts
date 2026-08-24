@@ -1,15 +1,63 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { RubricCheck } from "./types";
+
 export interface ScoreResult {
   pass: boolean;
   score: number | null;
+  rubric?: RubricCheck[];
+}
+
+export interface GradedScore {
+  score: number;
+  pass: boolean;
+  checks: RubricCheck[];
+}
+
+/** Read a verifier-written score.json (graded rubric). Missing/malformed → null. */
+export function readGradedScore(cwd: string): GradedScore | null {
+  try {
+    const raw = JSON.parse(readFileSync(resolve(cwd, "score.json"), "utf8")) as {
+      score?: unknown;
+      pass?: unknown;
+      checks?: unknown;
+    };
+    if (typeof raw.score !== "number" || !Number.isFinite(raw.score)) return null;
+    const checks: RubricCheck[] = [];
+    if (Array.isArray(raw.checks)) {
+      for (const c of raw.checks) {
+        if (!c || typeof c !== "object") continue;
+        const id = typeof (c as { id?: unknown }).id === "string" ? (c as { id: string }).id : "";
+        const label = typeof (c as { label?: unknown }).label === "string" ? (c as { label: string }).label : id;
+        if (!id) continue;
+        checks.push({ id, label, pass: (c as { pass?: unknown }).pass === true });
+      }
+    }
+    return { score: raw.score, pass: raw.pass === true, checks };
+  } catch {
+    return null;
+  }
 }
 
 export async function scoreProgrammatic(verify: string[], cwd: string): Promise<ScoreResult> {
+  let failed = false;
   for (const cmd of verify) {
     const proc = Bun.spawn(["sh", "-c", cmd], { cwd, stdout: "pipe", stderr: "pipe" });
     const code = await proc.exited;
-    if (code !== 0) return { pass: false, score: 0 };
+    if (code !== 0) {
+      failed = true;
+      break;
+    }
   }
-  return { pass: true, score: 1 };
+  const graded = readGradedScore(cwd);
+  if (graded) {
+    return {
+      pass: !failed && graded.pass,
+      score: graded.score,
+      rubric: graded.checks,
+    };
+  }
+  return failed ? { pass: false, score: 0 } : { pass: true, score: 1 };
 }
 
 /** Runs the judge model and returns its raw text verdict. */

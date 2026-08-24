@@ -65,12 +65,20 @@ export interface RunMetrics extends CollectedMetrics {
   rep: number;
 }
 
+export interface RubricCheck {
+  id: string;
+  label: string;
+  pass: boolean;
+}
+
 export interface RunResult extends RunMetrics {
   pass: boolean;
   score: number | null;
   /** true if the rep was killed at the timeout ceiling. Such a rep is "no
    *  result", not a capability failure: it is excluded from the pass rate. */
   timedOut?: boolean;
+  /** Per-criterion rubric from a graded verifier (score.json), when present. */
+  rubric?: RubricCheck[];
 }
 
 export interface Distribution {
@@ -118,6 +126,10 @@ export interface CellSummary {
   ttftMs: Distribution;
   outputTps: Distribution;
   peakContext: Distribution;
+  /** Graded rubric score in [0, 1]. Binary programmatic tasks stay 0 or 1. */
+  score: Distribution;
   costPerSuccess: number | null;
   tokensPerSuccess: number | null;
+  wallPerSuccess: number | null;
+  turnsPerSuccess: number | null;
 }

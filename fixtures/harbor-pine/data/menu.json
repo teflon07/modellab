@@ -1,0 +1,7 @@
+[
+  {"name": "Cedar Morning Bun", "price": "4.50", "tag": "pastry", "note": "brown butter, fir sugar"},
+  {"name": "Tide Pool Tart", "price": "5.25", "tag": "pastry", "note": "lemon curd, sea salt"},
+  {"name": "Dock Rye", "price": "7.00", "tag": "loaf", "note": "caraway, molasses"},
+  {"name": "Gale Scone", "price": "3.75", "tag": "pastry", "note": "dried cherry, rosemary"},
+  {"name": "Night Watch Cookie", "price": "2.50", "tag": "sweet", "note": "cacao nib, smoked salt"}
+]

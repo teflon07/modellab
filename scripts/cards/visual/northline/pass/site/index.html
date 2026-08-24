@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Northline Dispatch</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="shell">
+    <aside class="rail">
+      <h1>Northline Dispatch</h1>
+      <div class="radio-log" data-testid="radio-log">
+        <p>02:04  Pier 9 — switch heater still dark, copy.</p>
+        <p>02:07  Ash Cut — rock on the westbound, hold extras.</p>
+        <p>02:11  Coldwater — grain extra standing, no crew.</p>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="top">
+        <div class="yard-clock" data-testid="yard-clock">02:11</div>
+        <div class="status-pills" data-testid="status-pills">
+          <span class="open">OPEN 2</span>
+          <span class="hold">HOLDING 2</span>
+          <span class="clear">CLEARED 1</span>
+        </div>
+      </div>
+      <div class="status-filter" data-testid="status-filter">
+        <button type="button" data-status="all" class="on">all</button>
+        <button type="button" data-status="open">open</button>
+        <button type="button" data-status="holding">holding</button>
+        <button type="button" data-status="cleared">cleared</button>
+      </div>
+      <div class="incident-sort" data-testid="incident-sort">
+        <button type="button" data-sort="severity">sort severity</button>
+      </div>
+      <table class="incident-board" data-testid="incident-board">
+        <thead><tr><th>id</th><th>yard</th><th>status</th><th>sev</th><th>note</th></tr></thead>
+        <tbody data-board-body>
+          <tr><td>NL-441</td><td>Pier 9</td><td>open</td><td>8</td><td>Switch heater fault, track 3 dark</td></tr>
+          <tr><td>NL-442</td><td>Coldwater</td><td>holding</td><td>5</td><td>Grain extra waiting on a crew</td></tr>
+          <tr><td>NL-447</td><td>Ash Cut</td><td>open</td><td>9</td><td>Rockslide fouling the westbound</td></tr>
+          <tr><td>NL-450</td><td>Pier 9</td><td>cleared</td><td>3</td><td>Signal lamp replaced</td></tr>
+          <tr><td>NL-455</td><td>Redbridge</td><td>holding</td><td>6</td><td>Hazardous car set out</td></tr>
+        </tbody>
+      </table>
+      <form class="crew-login" data-testid="crew-login">
+        <h2>Crew sign-in</h2>
+        <label>Email <input name="email" type="email" required></label>
+        <label>Password <input name="password" type="password" required></label>
+        <button type="submit">Login</button>
+        <button type="button" data-logout>Logout</button>
+        <div class="supervisor-panel" data-testid="supervisor-panel"></div>
+      </form>
+    </main>
+  </div>
+  <script id="incident-data" type="application/json">
+    [{"id":"NL-441","yard":"Pier 9","status":"open","severity":8,"blurb":"Switch heater fault, track 3 dark"},{"id":"NL-442","yard":"Coldwater","status":"holding","severity":5,"blurb":"Grain extra waiting on a crew"},{"id":"NL-447","yard":"Ash Cut","status":"open","severity":9,"blurb":"Rockslide fouling the westbound"},{"id":"NL-450","yard":"Pier 9","status":"cleared","severity":3,"blurb":"Signal lamp replaced"},{"id":"NL-455","yard":"Redbridge","status":"holding","severity":6,"blurb":"Hazardous car set out"}]
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
