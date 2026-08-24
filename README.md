@@ -163,9 +163,11 @@ Results land in `results/<runId>/`:
 
 | File | Contents |
 |---|---|
-| `report.md` | Human-readable summary with per-cell pass rates and distributions |
-| `results.csv` | One row per rep, all metrics |
-| `results.json` | Same data, structured |
+| `report.md` | Human-readable summary with per-cell pass rates, rubric scores, and efficiency metrics |
+| `results.csv` | One row per cell, including tokens/cost/wall/turns per success |
+| `results.json` | Same data, structured, plus per-rep rubric checks when present |
+| `visual.html` | Side-by-side site iframes + score bars (written when a `website` spec ran) |
+| `artifacts/<spec>/<model>/<rep>/` | Captured `site/` and `score.json` for visual specs |
 
 ---
 
@@ -235,6 +237,9 @@ model is capable enough" need different calibration:
 | `fix-status-detection` | frontier | **headroom** | programmatic | real memory-dream bug: honor the `ok` flag, not a string scan |
 | `financial-trap` | frontier | **headroom** | programmatic (recomputed) | exclude a one-time gain from operating margins |
 | `extract-messy` | crossover | **headroom** | programmatic (rule-based) | dedup, malformed-email drop, missing-city null, state stripping |
+| `harbor-pine-{static,interactive,auth}` | frontier | visual ladder | programmatic (graded rubric) | branded bakery site → filters/reservations → member auth |
+| `northline-{static,interactive,auth}` | frontier | visual ladder | programmatic (graded rubric) | dark ops board → incident filter/sort → crew auth |
+| `atlas-{static,interactive,auth}` | frontier | visual ladder | programmatic (graded rubric) | travel journal → region/search → author auth |
 
 ### Capability probes (single-shot, generated per rep, faculty-mapped)
 
@@ -259,6 +264,8 @@ planning); **Sonnet 5** is weakest on long-horizon execution (0% at a 96-move
 maze) yet aces planning; **Opus 4.8** is robust but not dominant. The suite exists
 to find *where* models differ, per faculty — a single leaderboard rank hides this.
 Full per-faculty results in [`docs/TASKS.md`](docs/TASKS.md).
+
+**Visual real-world ladder.** Three product series (`harbor-pine`, `northline`, `atlas`) share a shape — static brand site, then interaction, then auth — but are styled so a viewer can tell them apart without reading a spec id. Each step is scored by a checklist rubric (`score.json`); pass still requires every item, but a 0.7 vs 0.2 failure is kept so model X vs model Y is visible before anyone opens a CI table. After a run, open `results/<runId>/visual.html`. Reference pass-vs-naive pages live in [`scripts/cards/visual/gallery.html`](scripts/cards/visual/gallery.html).
 
 To swap in your own real tasks, copy a fixture dir, write a `verify.py` that exits
 non-zero on any wrong output, add a matching self-test case to `fixtures.test.ts`,

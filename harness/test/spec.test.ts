@@ -1,8 +1,8 @@
 import { test, expect } from "bun:test";
 import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { parseSpec, resolvePrompt } from "../src/spec";
+import { join, resolve } from "node:path";
+import { parseSpec, resolvePrompt, loadSpecs } from "../src/spec";
 
 test("parseSpec accepts a valid single-shot spec", () => {
   const spec = parseSpec(`
@@ -28,6 +28,22 @@ test("parseSpec rejects bad track and missing prompt", () => {
 
 test("parseSpec requires fixture for agentic + programmatic scoring", () => {
   expect(() => parseSpec(`id: x\ntrack: frontier\nmode: agentic\nprompt: do it\nmodels: [a]\nreps: 1\ntimeout_s: 1\nscoring: {kind: programmatic}\ntags: []`, "x.yaml")).toThrow(/fixture/);
+});
+
+test("visual ladder specs parse and keep the visual tag", () => {
+  const loaded = loadSpecs(resolve(import.meta.dir, "../../specs"));
+  const visual = loaded.filter((s) => s.spec.tags.includes("website"));
+  const ids = visual.map((s) => s.spec.id).sort();
+  expect(ids).toEqual([
+    "atlas-auth", "atlas-interactive", "atlas-static",
+    "harbor-pine-auth", "harbor-pine-interactive", "harbor-pine-static",
+    "northline-auth", "northline-interactive", "northline-static",
+  ]);
+  for (const { spec } of visual) {
+    expect(spec.mode).toBe("agentic");
+    expect(spec.scoring.kind).toBe("programmatic");
+    expect(spec.fixture?.verify.length).toBeGreaterThan(0);
+  }
 });
 
 test("resolvePrompt reads prompt_file relative to spec dir", () => {

@@ -9,11 +9,46 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 const FIXTURES = resolve(import.meta.dir, "../../fixtures");
+const VISUAL = resolve(import.meta.dir, "../../scripts/cards/visual");
 
 function verifyStatus(dir: string): number {
   const r = spawnSync("python3", ["verify.py"], { cwd: dir, encoding: "utf8" });
   if (r.error) throw r.error; // python3 missing => fail loudly, don't skip
   return r.status ?? 1;
+}
+
+function verifyStep(dir: string, step: number): number {
+  const r = spawnSync("python3", ["verify.py", String(step)], { cwd: dir, encoding: "utf8" });
+  if (r.error) throw r.error;
+  return r.status ?? 1;
+}
+
+function installVisualSite(dir: string, series: string, kind: "pass" | "naive") {
+  cpSync(join(VISUAL, series, kind, "site"), join(dir, "site"), { recursive: true });
+}
+
+function visualLadder(series: string, fixture: string) {
+  withFixture(fixture, (dir) => {
+    expect(verifyStep(dir, 1)).not.toBe(0); // empty sandbox
+    installVisualSite(dir, series, "naive");
+    expect(verifyStep(dir, 1)).not.toBe(0); // generic gradient still fails
+    expect(verifyStep(dir, 2)).not.toBe(0);
+    expect(verifyStep(dir, 3)).not.toBe(0);
+
+    rmSync(join(dir, "site"), { recursive: true, force: true });
+    installVisualSite(dir, series, "pass");
+    rmSync(join(dir, "site", "logic.js"), { force: true });
+    rmSync(join(dir, "site", "app.js"), { force: true });
+    expect(verifyStep(dir, 1)).toBe(0); // HTML/CSS-only still clears the static rung
+    expect(verifyStep(dir, 2)).not.toBe(0); // missing logic fails interactive
+    expect(verifyStep(dir, 3)).not.toBe(0);
+
+    rmSync(join(dir, "site"), { recursive: true, force: true });
+    installVisualSite(dir, series, "pass");
+    expect(verifyStep(dir, 1)).toBe(0);
+    expect(verifyStep(dir, 2)).toBe(0);
+    expect(verifyStep(dir, 3)).toBe(0);
+  });
 }
 
 function stage(fixture: string): string {
@@ -542,4 +577,16 @@ test("arc-lite: generates an abstraction puzzle; verify accepts the solution gri
     expect(genStatus(dir, 6)).toBe(0);
     expect(readFileSync(join(dir, "solution.json"), "utf8")).not.toBe(first);
   });
+});
+
+test("harbor-pine: empty and naive fail; static-only clears step 1; full site clears all steps", () => {
+  visualLadder("harbor-pine", "harbor-pine");
+});
+
+test("northline: empty and naive fail; static-only clears step 1; full site clears all steps", () => {
+  visualLadder("northline", "northline");
+});
+
+test("atlas-field: empty and naive fail; static-only clears step 1; full site clears all steps", () => {
+  visualLadder("atlas-field", "atlas-field");
 });

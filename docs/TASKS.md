@@ -44,6 +44,31 @@ passes only on a correct one.
 | `semver-compare` | semver.org precedence incl. pre-release rules | programmatic |
 | `fix-lru` | LRU cache with two bugs (recency-on-read + off-by-one capacity) | programmatic |
 
+## Family 3 — visual real-world (agentic, multi-step, graded)
+
+These are the tests you can *see*. Each series is a different product with a
+hard-to-confuse visual language. Difficulty is a ladder, not a new puzzle type:
+the same fixture grows from a static branded site, to working interaction, to
+session auth against a shipped local API.
+
+| Series | Look | Step 1 | Step 2 | Step 3 (headroom) |
+|---|---|---|---|---|
+| `harbor-pine` | cream / pine / copper bakery | branded landing + menu/hours | menu filter + reservation rules | member login; private tasting note is fetched, not hardcoded |
+| `northline` | void / amber / mono dispatch board | incident table + radio log | status filter + severity sort | crew login; supervisor near-miss is fetched, not hardcoded |
+| `atlas` | paper / terracotta / passport stamps | journal + stamps + polaroids | region filter + search | author login; unpublished coordinate is fetched, not hardcoded |
+
+**Scoring:** `verify.py` writes `score.json` / `score.md` (one boolean per rubric
+line). Exit 0 only if every line passes; the harness still records the partial
+score, plus tokens/success, cost/success, wall/success, and turns/success. A
+weaker model that ships a purple “Welcome to our website” page fails the static
+rung on purpose — that naive artifact is checked in `harness/test/fixtures.test.ts`
+and shown next to the on-brief site in `scripts/cards/visual/gallery.html`.
+
+**Why this family exists:** the coding/cost tasks saturate and the faculty probes
+are abstract. These tasks ask for the work people actually hire agents to do
+(build the site, make it work, put a door on it) and leave a screenshotable
+diff so “model X is better than model Y” does not depend on reading a CSV.
+
 **Finding:** deterministic, well-specified coding is a *cost race* — even Haiku
 4.5 aces `expr-eval`/`semver-compare`/`fix-lru`. On this family the buy is the
 cheapest reliable model (Haiku/GPT-5.5); Opus's premium is not justified here.

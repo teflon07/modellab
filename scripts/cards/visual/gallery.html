@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Visual series — pass vs naive</title>
+  <style>
+    :root { --ink:#14120f; --paper:#f3efe6; --rule:#d4cbbd; }
+    * { box-sizing:border-box; }
+    body { margin:0; font:16px/1.45 "Iowan Old Style", Palatino, serif; background:var(--paper); color:var(--ink); }
+    header { padding:28px 28px 10px; }
+    header p { max-width: 46em; color:#5c564c; }
+    section { padding: 8px 28px 36px; }
+    h2 { margin: 0 0 8px; }
+    .pair { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    figure { margin:0; background:#fffdf8; border:1px solid var(--rule); }
+    figcaption { padding:8px 12px; font-size:0.92rem; border-bottom:1px solid var(--rule); }
+    iframe { width:100%; height:540px; border:0; background:#fff; }
+    .metrics { font-size:0.92rem; color:#5c564c; }
+    @media (max-width:900px) { .pair { grid-template-columns:1fr; } header, section { padding-left:16px; padding-right:16px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Three visual series, immediately distinguishable</h1>
+    <p>
+      Each row is one real-world product. Left is a complete on-brief site (what a
+      stronger model produces). Right is the generic gradient page weaker models
+      fall back to. You should not need a table to see which is which — cream bakery,
+      dark rail board, paper journal vs the same purple “Welcome to our website” three times.
+    </p>
+    <p class="metrics">
+      When the harness runs these specs it also records tokens per success, cost per
+      success, wall clock per success, turns per success, and a graded rubric score.
+      Open <code>results/&lt;runId&gt;/visual.html</code> after a bench for the live compare.
+    </p>
+  </header>
+
+  <section>
+    <h2>Harbor &amp; Pine — bakery</h2>
+    <div class="pair">
+      <figure>
+        <figcaption>PASS · on-brief · cream / pine / copper · Fraunces</figcaption>
+        <iframe src="harbor-pine/pass/site/index.html" title="Harbor pass"></iframe>
+      </figure>
+      <figure>
+        <figcaption>NAIVE · generic SaaS gradient · fails the rubric</figcaption>
+        <iframe src="harbor-pine/naive/site/index.html" title="Harbor naive"></iframe>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Northline Dispatch — ops board</h2>
+    <div class="pair">
+      <figure>
+        <figcaption>PASS · on-brief · void / amber / mono</figcaption>
+        <iframe src="northline/pass/site/index.html" title="Northline pass"></iframe>
+      </figure>
+      <figure>
+        <figcaption>NAIVE · same generic template</figcaption>
+        <iframe src="northline/naive/site/index.html" title="Northline naive"></iframe>
+      </figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Atlas Field Notes — travel journal</h2>
+    <div class="pair">
+      <figure>
+        <figcaption>PASS · on-brief · paper / terracotta / stamps</figcaption>
+        <iframe src="atlas-field/pass/site/index.html" title="Atlas pass"></iframe>
+      </figure>
+      <figure>
+        <figcaption>NAIVE · same generic template</figcaption>
+        <iframe src="atlas-field/naive/site/index.html" title="Atlas naive"></iframe>
+      </figure>
+    </div>
+  </section>
+</body>
+</html>

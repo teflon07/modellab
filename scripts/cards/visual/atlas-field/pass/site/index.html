@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Atlas Field Notes</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="page">
+    <header class="mast">
+      <h1>Atlas Field Notes</h1>
+      <div class="compass-mark" data-testid="compass-mark">N</div>
+    </header>
+    <div class="stamp-rail" data-testid="stamp-rail">
+      <div class="stamp">CHL-19</div>
+      <div class="stamp">NAM-04</div>
+      <div class="stamp">GRC-11</div>
+      <div class="stamp">CAN-08</div>
+      <div class="stamp">PER-02</div>
+    </div>
+    <div class="polaroid-stack" data-testid="polaroid-stack">
+      <div class="polaroid"><div class="photo"></div></div>
+      <div class="polaroid"><div class="photo"></div></div>
+      <div class="polaroid"><div class="photo"></div></div>
+    </div>
+    <div class="region-filter" data-testid="region-filter">
+      <button type="button" data-region="all" class="on">All</button>
+      <button type="button" data-region="Andes">Andes</button>
+      <button type="button" data-region="Namib">Namib</button>
+      <button type="button" data-region="Aegean">Aegean</button>
+      <button type="button" data-region="Yukon">Yukon</button>
+    </div>
+    <input data-testid="note-search" id="note-search" placeholder="Search notes"/>
+    <section class="route-ledger" data-testid="route-ledger">
+      <article class="note"><div><h3>Red Pass at Dusk</h3><p>Condors above the switchbacks, tea gone cold.</p></div><span class="region">Andes</span></article>
+      <article class="note"><div><h3>Salt Wind, Walvis</h3><p>The dune face sounded like a drum.</p></div><span class="region">Namib</span></article>
+      <article class="note"><div><h3>Ferry Ledger</h3><p>A boy sold figs by the gangway light.</p></div><span class="region">Aegean</span></article>
+      <article class="note"><div><h3>Thaw Line</h3><p>Ice broke in three reports after midnight.</p></div><span class="region">Yukon</span></article>
+      <article class="note"><div><h3>Market Smoke</h3><p>Guinea-pig stew and a radio playing huayno.</p></div><span class="region">Andes</span></article>
+    </section>
+    <form class="author-login" data-testid="author-login">
+      <h2>Author desk</h2>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Password <input name="password" type="password" required></label>
+      <button type="submit">Enter</button>
+      <button type="button" data-logout>Leave</button>
+      <div class="private-panel" data-testid="private-panel"></div>
+    </form>
+  </div>
+  <script id="note-data" type="application/json">
+    [{"title":"Red Pass at Dusk","region":"Andes","stamp":"CHL-19","body":"Condors above the switchbacks, tea gone cold."},{"title":"Salt Wind, Walvis","region":"Namib","stamp":"NAM-04","body":"The dune face sounded like a drum."},{"title":"Ferry Ledger","region":"Aegean","stamp":"GRC-11","body":"A boy sold figs by the gangway light."},{"title":"Thaw Line","region":"Yukon","stamp":"CAN-08","body":"Ice broke in three reports after midnight."},{"title":"Market Smoke","region":"Andes","stamp":"PER-02","body":"Guinea-pig stew and a radio playing huayno."}]
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

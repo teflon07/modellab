@@ -65,6 +65,9 @@ test("summarize groups by (track, spec, model) with derived metrics", () => {
   expect(cell.tokens).toMatchObject({ median: 150, min: 100, max: 200 });
   expect(cell.costPerSuccess).toBeCloseTo(0.06, 5);
   expect(cell.tokensPerSuccess).toBe(300);
+  expect(cell.wallPerSuccess).toBe(2000);
+  expect(cell.turnsPerSuccess).toBe(2);
+  expect(cell.score.median).toBe(1);
   // reliability band present and brackets the point estimate
   expect(cell.passRateCI.low).toBeLessThan(0.5);
   expect(cell.passRateCI.high).toBeGreaterThan(0.5);

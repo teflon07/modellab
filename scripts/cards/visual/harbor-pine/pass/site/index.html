@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Harbor & Pine</title>
+  <link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+  <div class="wrap">
+    <header class="split-hero" data-testid="split-hero">
+      <div>
+        <h1>Harbor & Pine</h1>
+        <p class="tag">Bread, tide tables, and a quiet corner in Seaglass Cove.</p>
+      </div>
+      <aside class="tide-box">
+        <strong>MORNING SHEET</strong>
+        <p>Fog lifting after 09:00. Shop door stays on the latch until the first bake cools.</p>
+      </aside>
+    </header>
+
+    <p class="tide-ribbon" data-testid="tide-ribbon">High 06:42 · Slack 12:10 · Low 18:55 · wind off the firs, 8 kn</p>
+
+    <div class="board">
+      <aside class="chalkboard" data-testid="chalkboard">
+        <h2>Today on the board</h2>
+        <p>Fir-sugar bun after the 6am bake. Ask for the one with the darker edge.</p>
+      </aside>
+      <section class="hours-rail" data-testid="hours-rail">
+        <h2>Hours</h2>
+        <ul>
+          <li><span>Tue–Thu</span><span>07:30–15:00</span></li>
+          <li><span>Fri–Sat</span><span>07:30–18:00</span></li>
+          <li><span>Sun</span><span>08:00–13:00</span></li>
+          <li><span>Mon</span><span>closed</span></li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="menu-filter" data-testid="menu-filter">
+      <button type="button" data-tag="all" class="on">All</button>
+      <button type="button" data-tag="pastry">Pastry</button>
+      <button type="button" data-tag="loaf">Loaf</button>
+      <button type="button" data-tag="sweet">Sweet</button>
+    </div>
+
+    <section class="pastry-list" data-testid="pastry-list">
+      <article class="pastry"><div><b>Cedar Morning Bun</b><div>brown butter, fir sugar</div></div><span class="price">4.50</span></article>
+      <article class="pastry"><div><b>Tide Pool Tart</b><div>lemon curd, sea salt</div></div><span class="price">5.25</span></article>
+      <article class="pastry"><div><b>Dock Rye</b><div>caraway, molasses</div></div><span class="price">7.00</span></article>
+      <article class="pastry"><div><b>Gale Scone</b><div>dried cherry, rosemary</div></div><span class="price">3.75</span></article>
+      <article class="pastry"><div><b>Night Watch Cookie</b><div>cacao nib, smoked salt</div></div><span class="price">2.50</span></article>
+    </section>
+
+    <form class="reserve-form" data-testid="reserve-form">
+      <h2>Hold a table</h2>
+      <label>Name <input name="name" required></label>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Date <input name="date" type="date" required></label>
+      <label>Party <input name="party" type="number" min="2" max="8" required></label>
+      <button type="submit">Reserve</button>
+      <p data-reserve-status></p>
+    </form>
+
+    <form class="member-login" data-testid="member-login">
+      <h2>Members</h2>
+      <label>Email <input name="email" type="email" required></label>
+      <label>Password <input name="password" type="password" required></label>
+      <button type="submit">Sign in</button>
+      <button type="button" data-logout>Sign out</button>
+      <div class="member-panel" data-testid="member-panel"></div>
+    </form>
+  </div>
+  <script id="menu-data" type="application/json">
+    [{"name":"Cedar Morning Bun","price":"4.50","tag":"pastry","note":"brown butter, fir sugar"},{"name":"Tide Pool Tart","price":"5.25","tag":"pastry","note":"lemon curd, sea salt"},{"name":"Dock Rye","price":"7.00","tag":"loaf","note":"caraway, molasses"},{"name":"Gale Scone","price":"3.75","tag":"pastry","note":"dried cherry, rosemary"},{"name":"Night Watch Cookie","price":"2.50","tag":"sweet","note":"cacao nib, smoked salt"}]
+  </script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

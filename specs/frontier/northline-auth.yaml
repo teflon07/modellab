@@ -1,0 +1,13 @@
+id: northline-auth
+track: frontier
+mode: agentic
+prompt_file: ../../prompts/northline-auth.md
+models: ["anthropic/claude-opus-4-8", "anthropic/claude-sonnet-4-6", "anthropic/claude-haiku-4-5"]
+reps: 3
+timeout_s: 1200
+scoring: { kind: programmatic }
+fixture:
+  repo: fixtures/northline
+  setup: []
+  verify: ["python3 verify.py 3"]
+tags: [visual, agentic, real-world, website, headroom]

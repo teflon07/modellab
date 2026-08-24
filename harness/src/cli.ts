@@ -11,9 +11,12 @@ import { collectByTag } from "./collector";
 import { scoreProgrammatic, scoreJudge } from "./scorer";
 import { provisionSandbox, teardownSandbox } from "./sandbox";
 import { summarize } from "./aggregate";
-import { renderMarkdown, renderCsv, renderJson } from "./report";
+import { renderMarkdown, renderCsv, renderJson, renderVisualHtml, type ArtifactRef } from "./report";
 import { checkObsHealth } from "./obs";
+import { captureVisualArtifacts, artifactRelPath } from "./artifacts";
+import { modelSlug } from "./tag";
 import type { Spec, RunResult, CollectedMetrics } from "./types";
+import type { ScoreResult } from "./scorer";
 
 export interface PlannedRun {
   path: string;
@@ -131,6 +134,7 @@ async function main(): Promise<void> {
   const env = cfg.runner === "pi" ? obsEnv : {};
 
   const results: RunResult[] = [];
+  const artifacts: ArtifactRef[] = [];
   const meta = { runId, generatedAt: new Date().toISOString(), piVersion: cfg.pi_version };
   const outDir = resolve(root, "results", runId);
   mkdirSync(outDir, { recursive: true });
@@ -145,6 +149,9 @@ async function main(): Promise<void> {
     writeFileSync(resolve(outDir, "report.md"), renderMarkdown(summaries, meta));
     writeFileSync(resolve(outDir, "results.csv"), renderCsv(summaries));
     writeFileSync(resolve(outDir, "results.json"), renderJson(summaries, results, meta));
+    if (artifacts.length || results.some((r) => r.rubric?.length)) {
+      writeFileSync(resolve(outDir, "visual.html"), renderVisualHtml(summaries, results, meta, artifacts));
+    }
   };
   for (const p of plan) {
     const tag = buildRunTag(runId, p.spec.id, p.model, p.rep);
@@ -210,7 +217,7 @@ async function main(): Promise<void> {
         metrics = collectByTag(cfg.obs.db_path, tag);
       }
 
-      let score = { pass: false, score: null as number | null };
+      let score: ScoreResult = { pass: false, score: null };
       if (run.exitCode !== 0 || run.timedOut) {
         score = { pass: false, score: 0 };
         // Surface a real runner/API error loudly: without this an auth failure
@@ -268,8 +275,17 @@ async function main(): Promise<void> {
       if (metrics) {
         const priced = priceOverride(cfg.prices, p.model, metrics);
         if (priced != null) metrics.costTotal = priced;
-        results.push({ runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics, pass: score.pass, score: score.score, timedOut: run.timedOut });
+        results.push({
+          runId, specId: p.spec.id, model: p.model, rep: p.rep, ...metrics,
+          pass: score.pass, score: score.score, timedOut: run.timedOut,
+          rubric: score.rubric,
+        });
         appendFileSync(outputsPath, JSON.stringify({ runId, specId: p.spec.id, model: p.model, rep: p.rep, output: run.stdout }) + "\n");
+        if (sandbox && p.spec.tags.includes("website")) {
+          const rel = artifactRelPath(p.spec.id, modelSlug(p.model), p.rep);
+          const copied = captureVisualArtifacts(sandbox.cwd, resolve(outDir, rel));
+          if (copied.length) artifacts.push({ specId: p.spec.id, model: p.model, rep: p.rep, href: rel });
+        }
         checkpoint();
       } else {
         console.error(`[warn] no telemetry for ${tag} (exit ${run.exitCode}, timedOut=${run.timedOut})`);
